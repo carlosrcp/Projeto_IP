@@ -1,5 +1,10 @@
+#from _typeshed import Self
 import pygame
 from sys import exit
+from pygame import draw
+from pygame import key
+from pygame.constants import KEYDOWN
+from pygame.display import update
 
 from pygame.mixer import fadeout
 
@@ -21,8 +26,10 @@ test_surface = pygame.Surface((16,16))
 test_surface.fill('red')
 
 # surface do fundo
-bg_surface = pygame.Surface((1,1))
+bg_surface = pygame.Surface((screen_width,screen_height))
 bg_surface.fill('black')
+
+#img_nave = pygame.image.load("nave.png")
 
 # posição inicial
 obj_pos = (640 / 2,360 / 2)
@@ -33,6 +40,87 @@ move_down = False
 move_left = False
 move_right = False
 
+def draw_bg():
+    screen.blit(bg_surface, (0,0))
+
+class Projectile (pygame.sprite.Sprite):
+    def __init__(self, x, y) -> None:
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("projectile.png")
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+        self.shot = False
+    
+    #ready = False
+    def update(self):
+        
+        # se o projetil tiver sido disparado
+        if self.shot:
+            speed = 8
+            self.rect.y -= speed
+        
+        if self.rect.y < - 16:
+            self.shot = False
+        
+
+projectile_group = pygame.sprite.Group()
+for i in range(3):
+    new_projectile = Projectile(0,0)
+
+    projectile_group.add(new_projectile)
+
+class Player (pygame.sprite.Sprite):
+        
+    def __init__(self, x, y) -> None:
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("nave.png")
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+
+        self.trigger = False
+    
+    def shoot(self):
+        for i in projectile_group:
+            if i.shot == False:
+                i.rect.x = self.rect.x
+                i.rect.y = self.rect.y
+                i.shot = True
+                return
+
+    def update(self):
+        
+        speed = 6
+
+        key_pressed = pygame.key.get_pressed()
+        
+        
+        #key_down = pygame.KEYDOWN()
+
+        if key_pressed[pygame.K_LEFT]:
+            self.rect.x -= speed 
+
+        if key_pressed[pygame.K_RIGHT]:
+            self.rect.x += speed 
+        
+        if key_pressed[pygame.K_UP]:
+            self.rect.y -= speed 
+
+        if key_pressed[pygame.K_DOWN]:
+            self.rect.y += speed 
+        
+        if key_pressed[pygame.K_SPACE]:
+            if not(self.trigger):
+                self.shoot()
+            
+            self.trigger = True
+        else:
+            self.trigger = False
+
+player_group = pygame.sprite.Group()
+
+
+player = Player(int(screen_width/2), int(screen_height/2))
+player_group.add(player)
 
 # loop principal
 while True:
@@ -41,47 +129,19 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
-        
-        
-        if event.type == pygame.KEYDOWN:
-            if event.key== pygame.K_LEFT:
-                move_left = True
-            elif event.key== pygame.K_RIGHT:
-                move_right = True
-            elif event.key== pygame.K_UP:
-                move_up = True
-            elif event.key== pygame.K_DOWN:
-                move_down = True
-        
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_LEFT:
-                move_left = False
-            elif event.key == pygame.K_RIGHT:
-                move_right = False
-            elif event.key == pygame.K_UP:
-                move_up = False
-            elif event.key == pygame.K_DOWN:
-                move_down = False
-    
+            
     
     dt = clock.tick(max_fps)
     
-    velocidade = 6
-    
-    if move_down:
-        obj_pos = (obj_pos[0], obj_pos[1] + velocidade)
-    if move_up:
-        obj_pos = (obj_pos[0], obj_pos[1] - velocidade)
-    if move_right:
-        obj_pos = (obj_pos[0] + velocidade, obj_pos[1])
-    if move_left:
-        obj_pos = (obj_pos[0] - velocidade, obj_pos[1])
+    draw_bg()
 
-    for x in range(screen_width):
-        for y in range(screen_height):
-            screen.blit(bg_surface, (x,y))
+    # desenhar os sprites
+    player_group.update()
+    player_group.draw(screen)
 
-    screen.blit(test_surface, obj_pos)
+    projectile_group.update()
+    projectile_group.draw(screen)
+
 
     pygame.display.update()
 gig
