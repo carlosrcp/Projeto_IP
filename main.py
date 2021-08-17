@@ -117,9 +117,11 @@ class Player (pygame.sprite.Sprite):
 
         # checa e dispara os projeteis
         if key_pressed[pygame.K_SPACE]:
+            
             if not(self.trigger):
                 self.shoot()
-            
+                pygame.mixer.Sound('assets/Laser_shoot.wav').play()  # adiciona pew pew pew
+
             self.trigger = True
         else:
             self.trigger = False
@@ -129,7 +131,7 @@ class Player (pygame.sprite.Sprite):
 player_group = pygame.sprite.Group()
 
 # cria o jogador na posição inicial
-player = Player(int(screen_width/2), int(screen_height/2))
+player = Player(int(screen_width/2), 9 * int(screen_height/10))
 player_group.add(player)
 
 # loop principal
