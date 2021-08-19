@@ -17,16 +17,16 @@ screen_width = 640
 # framerate maximo da janela
 max_fps = 60
 
-# cria a tela
-screen = pygame.display.set_mode((screen_width,screen_height))
+# cria a tela em que o jogo é mostrado, pode variar de  tamanho
+screen = pygame.display.set_mode((screen_width,screen_height),pygame.RESIZABLE)
+# cria tela em que o jogo é desenhado, sempre tem o mesmo tamanho
+game_screen = screen.copy()
+
+
 # o nome da janela
 pygame.display.set_caption("nome teste")
 # cria o clock que regula o framerate
 clock = pygame.time.Clock()
-
-# surface do objeto que se move
-test_surface = pygame.Surface((16,16))
-test_surface.fill('red')
 
 # surface do fundo, tem o tamanho da tela e é toda preta
 bg_surface = pygame.Surface((screen_width,screen_height))
@@ -37,7 +37,7 @@ obj_pos = (640 / 2,360 / 2)
 
 # função para desenhar o background, coisas a mais como estrelas ao fundo devem ser adicionados aqui
 def draw_bg():
-    screen.blit(bg_surface, (0,0))
+    game_screen.blit(bg_surface, (0,0))
 
 
 # classe do projetil
@@ -134,12 +134,16 @@ player_group.add(player)
 
 # loop principal
 while True:
+
     # fecha a janela
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
-    
+
+        #if event.type == pygame.VIDEORESIZE:
+        #    screen = pygame.display.set_mode((event.w,event.h),pygame.RESIZABLE)
+
     # dt é o delta time, o tempo de um tick para o outro
     dt = clock.tick(max_fps)
     
@@ -155,8 +159,16 @@ while True:
     draw_bg()
 
     # desenha os projeteis e o jogador
-    projectile_group.draw(screen)    
-    player_group.draw(screen)
+    projectile_group.draw(game_screen)    
+    player_group.draw(game_screen)
 
+
+    # aumenta o tamanho da game_screen e desenha ela na screen
+    screenshot = pygame.transform.scale(game_screen, screen.get_rect().size)
+
+    screen.blit(screenshot, (0,0))
+    
     pygame.display.update()
+
+
 gig
