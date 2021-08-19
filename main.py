@@ -10,11 +10,21 @@ from pygame.display import update
 
 from pygame.mixer import fadeout
 import random
+
+from pygame.sprite import Sprite
 pygame.init()
 
 # resolução da tela em pixels
 screen_height = 360
 screen_width = 640
+
+# a largura disponível pra a área jogável
+playable_width = 202
+
+# variaveis pra ajudar a achar os cantos da area jogavel
+playable_area_right = int((screen_width + playable_width)/2)
+playable_area_left = int((screen_width - playable_width)/2)
+playable_area_center = int(screen_width)/2
 
 # framerate maximo da janela
 max_fps = 60
@@ -34,12 +44,36 @@ clock = pygame.time.Clock()
 bg_surface = pygame.Surface((screen_width,screen_height))
 bg_surface.fill('black')
 
+
+# borda da área jogavel
+border_group = pygame.sprite.Group()
+
+for i in range(1 + int (screen_height / 16)):
+    # sprite da borda da direita
+    border = Sprite()
+    border.image = pygame.image.load('assets/border.png')
+    border.rect = border.image.get_rect()
+    border.rect.topleft = (playable_area_right , i * border.rect.height)    
+    
+    # sprite da borda da esquerda
+    border_r = Sprite()
+    border_r.image = pygame.transform.rotate(pygame.image.load('assets/border.png'), 180)
+    border_r.rect = border.image.get_rect()
+    border_r.rect.topright = (playable_area_left , i * border.rect.height) 
+
+    border_group.add(border)
+    border_group.add(border_r)
+
 # posição inicial
 obj_pos = (640 / 2,360 / 2)
 
 # função para desenhar o background, coisas a mais como estrelas ao fundo devem ser adicionados aqui
 def draw_bg():
     game_screen.blit(bg_surface, (0,0))
+
+    border_group.draw(game_screen)
+    #for i in range(screen_height/border.rect.height):
+    #    game_screen.blit(border, (0, i * border.rect.height))
 
 
 # Pickups
@@ -52,6 +86,11 @@ class Pickup (pygame.sprite.Sprite):
         self.active = False
         self.speed = 3
     
+    def spawn_rand(self):
+
+        self.active = True
+        self.rect.center = [random.randint(playable_area_left, playable_area_right - self.rect.width) , 0]
+
     def spawn(self, x, y):
         self.active = True
         self.rect.center = [x,y]
@@ -142,10 +181,10 @@ class Player (pygame.sprite.Sprite):
 
         # movimento horizontal
         if key_pressed[pygame.K_LEFT]:
-            self.rect.x = max(self.rect.x - speed, 0)  #self.rect.x -= speed 
+            self.rect.x = max(self.rect.x - speed, playable_area_left)  #self.rect.x -= speed 
 
         if key_pressed[pygame.K_RIGHT]:
-            self.rect.x = min(self.rect.x + speed, screen_width - 16)
+            self.rect.x = min(self.rect.x + speed, playable_area_right - self.rect.width)
         
         # Movimento vertical 
         #if key_pressed[pygame.K_UP]:
@@ -200,7 +239,7 @@ while True:
 
         for pu in pickups_group:
             if pu.active == False:
-                pu.spawn(random.randint(0, screen_width), 0)
+                pu.spawn_rand()
 
                 break
 
