@@ -5,6 +5,7 @@ from pygame import draw
 from pygame import key
 from pygame import time
 from pygame import fastevent
+from pygame import sprite
 from pygame.constants import FULLSCREEN, KEYDOWN, RESIZABLE
 from pygame.display import update
 
@@ -45,6 +46,8 @@ bg_surface = pygame.Surface((screen_width,screen_height))
 bg_surface.fill('black')
 
 
+
+
 # borda da área jogavel
 border_group = pygame.sprite.Group()
 
@@ -67,11 +70,60 @@ for i in range(1 + int (screen_height / 16)):
 # posição inicial
 obj_pos = (640 / 2,360 / 2)
 
+
+bg_group = pygame.sprite.Group()
+
+# fundo principal (estático)
+bg_main = Sprite()
+bg_main.image = pygame.image.load('assets/bg.png')
+bg_main.rect = bg_main.image.get_rect()
+bg_main.rect.topleft = (playable_area_left, 0)
+
+bg_group.add(bg_main)
+
+# paralax vai se mover pra dar ilusão de movimento
+paralax_group = pygame.sprite.Group()
+
+for i in range(2):
+    parallax_1 = Sprite()
+    parallax_1.image = pygame.image.load('assets/poeira 1.png')
+    parallax_1.rect = bg_main.image.get_rect()
+    parallax_1.rect.topleft = (playable_area_left, parallax_1.rect.height * i)
+
+    # velocidade em que o vai se mover na tela
+    parallax_1.speed = 1
+
+    parallax_2 = Sprite()
+    parallax_2.image = pygame.image.load('assets/poeira 2.png')
+    parallax_2.rect = bg_main.image.get_rect()
+    parallax_2.rect.topleft = (playable_area_left, parallax_2.rect.height * i)
+
+    parallax_2.speed = 2
+
+    paralax_group.add(parallax_1)
+    paralax_group.add(parallax_2)
+
+
+
+
+
 # função para desenhar o background, coisas a mais como estrelas ao fundo devem ser adicionados aqui
 def draw_bg():
     game_screen.blit(bg_surface, (0,0))
 
+    bg_group.draw(game_screen)
+
+    # movimento do paralax
+    for p in paralax_group:
+        p.rect.y += p.speed
+
+        if p.rect.y > screen_height/2 + p.rect.height / 2:
+            p.rect.y -= p.rect.height * 2
+
+    paralax_group.draw(game_screen)
+
     border_group.draw(game_screen)
+
     #for i in range(screen_height/border.rect.height):
     #    game_screen.blit(border, (0, i * border.rect.height))
 
