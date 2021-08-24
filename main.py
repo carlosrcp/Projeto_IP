@@ -150,6 +150,11 @@ class Pickup (pygame.sprite.Sprite):
         
         #update mask
         self.mask = pygame.mask.from_surface(self.image)
+    
+    # pick sai da tela e fica inativa, pode ser usado pra quando você pega e ela sai da tela
+    def disable(self):
+        self.rect.center = [-self.rect.width, -self.rect.height]
+        self.active = False
         
 
 pickups_group = pygame.sprite.Group()
