@@ -1,6 +1,7 @@
 #from _typeshed import Self
 import pygame
 from sys import exit
+from math import floor
 from pygame import draw
 from pygame import key
 from pygame import time
@@ -18,6 +19,16 @@ pygame.init()
 # resolução da tela em pixels
 screen_height = 360
 screen_width = 640
+
+# posicao inicial do primeiro inimigo
+x_pos = 250
+y_pos = 20
+
+# tamanho dos quadrados inimigos (pode ser retirado no momento que forem adicionados as imagens de inimigos)
+square_sizes = [11,15,19,20]
+
+# dificuldade padrao
+standard_dificultie = 0
 
 # a largura disponível pra a área jogável
 playable_width = 202
@@ -158,6 +169,8 @@ for i in range(3):
     new_pu = Pickup()
     pickups_group.add(new_pu)
 
+# inimigos mortos/ variavel criada para alterar a dificuldade conforme os inimigos forem mortos
+enemies_killed = 0
 
 # classe do projetil
 class Projectile (pygame.sprite.Sprite):
@@ -174,22 +187,31 @@ class Projectile (pygame.sprite.Sprite):
         
         # se o projetil tiver sido disparado
         if self.shot:
-            speed = 8
+            speed = 5
             self.rect.y -= speed
         
         # se o projetil sair da tela, ficar inativo
         if self.rect.y < - 16:
             self.shot = False
         
+        if pygame.sprite.spritecollide(self,enemies_group,True):
+            self.kill()
+            create_projectiles(1)
+            global enemies_killed
+            enemies_killed += 1
+
 
 # grupo que guarda os projeteis a ser disparados
 projectile_group = pygame.sprite.Group()
-for i in range(3): # em range(X), x é o número de projeteis
+
+def create_projectiles(value: int):
+    for i in range(value): # em range(X), x é o número de projeteis
     # projetil é criado fora da tela e adicionado ao grupo
-    new_projectile = Projectile()
+        new_projectile = Projectile()
 
-    projectile_group.add(new_projectile)
+        projectile_group.add(new_projectile)
 
+create_projectiles(3)
 
 white = (255, 255, 255)
 health_font = pygame.font.SysFont('comicsans', 30)
@@ -262,6 +284,42 @@ class Player (pygame.sprite.Sprite):
         else:
             self.trigger = False
 
+class EnemySquare(pygame.sprite.Sprite):
+    def __init__(self,type,x_adjust,y_adjust):
+        super().__init__()
+        self.x = x_pos
+        self.y = y_pos
+        self.moving_counter = 0
+        self.enemy_speed = 1
+        
+        self.image = pygame.Surface((square_sizes[type],square_sizes[type]))
+        self.image.fill((150,64,64))
+        self.rect = self.image.get_rect(center = (self.x + (x_adjust*(square_sizes[2] + 9)),self.y + (y_adjust*(square_sizes[2] + 9))))
+    
+    def update(self,ind: int):
+        self.dificulties = [1,2,4,8,16,32,64,128]
+        self.time = 2 + floor(pygame.time.get_ticks()/100)
+
+        # ####### timer criado com proposito de teste #########
+        # self.time_display = standard_font.render(f'timer: {self.time}',False,'White')
+        # screen.blit(self.time_display,(10,100))
+
+        if self.time == int(self.time) and self.time % (16/self.dificulties[ind]) == 0:
+            self.rect.x += self.enemy_speed
+            self.moving_counter += 1
+            if abs(self.moving_counter) >= 22:
+                self.rect.y += 4
+                self.enemy_speed *= -1
+                self.moving_counter *= self.enemy_speed
+
+enemies_group = pygame.sprite.Group()
+
+def create_enemies(waves: int):
+    for j in range(6):
+        for i in range(6):
+            enemies_group.add(EnemySquare(floor(j/2),i,j + waves))
+
+create_enemies(0)
 
 # grupo dos jogadores, só tem 1
 player_group = pygame.sprite.Group()
@@ -273,6 +331,8 @@ player_group.add(player)
 
 # timer para dropar os pickups, apenas para fins de testes
 timer = 0.0
+
+ondas = 0
 
 # loop principal
 while True:
@@ -288,11 +348,26 @@ while True:
     
     timer += dt / 1000.0
 
-    # update nos projeteis e jogador
+    if enemies_killed == 0:
+        standard_dificultie = 0
+    elif enemies_killed < 8:
+        standard_dificultie = (floor(enemies_killed/8)-1)
+    else:
+        standard_dificultie = 7
+
+    if not enemies_group:
+        if ondas < 6:
+            ondas += 1
+        
+        pygame.time.delay(1250)
+        create_enemies(ondas)    
+
+    
+    # update nos projeteis,jogador e inimigos
     pickups_group.update()
     player_group.update()
     projectile_group.update()
-    
+    enemies_group.update(standard_dificultie)
 
     # criacao dos pickups
     if timer > 4:
@@ -311,10 +386,11 @@ while True:
     # desenha o fundo (tela preta)
     draw_bg()
     
-    # desenha os projeteis e o jogador
+    # desenha os projeteis, inimigos e o jogador
     pickups_group.draw(game_screen)
     projectile_group.draw(game_screen)    
     player_group.draw(game_screen)
+    enemies_group.draw(game_screen)
 
     #checar se pegou pickup
     if pygame.sprite.spritecollide(player, pickups_group, True):
