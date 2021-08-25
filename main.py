@@ -1,4 +1,5 @@
 #from _typeshed import Self
+from math import sin
 import pygame
 from sys import exit
 from pygame import draw
@@ -8,6 +9,7 @@ from pygame import fastevent
 from pygame import sprite
 from pygame.constants import FULLSCREEN, KEYDOWN, RESIZABLE
 from pygame.display import update
+from pygame.math import disable_swizzling
 
 from pygame.mixer import fadeout
 import random
@@ -120,6 +122,12 @@ def draw_bg():
     #    game_screen.blit(border, (0, i * border.rect.height))
 
 
+# para ser comparados depois
+PICKUP_HP = 0
+PICKUP_POWERUP1 = 1
+PICKUP_POWERUP2 = 2
+PICKUP_POWERUP3 = 3
+
 # Pickups
 class Pickup (pygame.sprite.Sprite):
     def __init__(self) -> None:
@@ -129,6 +137,9 @@ class Pickup (pygame.sprite.Sprite):
         self.rect.center = [-self.rect.width, -self.rect.height]
         self.active = False
         self.speed = 3
+        self.pickup_type = PICKUP_HP
+
+
     
     def spawn_rand(self):
 
@@ -151,24 +162,114 @@ class Pickup (pygame.sprite.Sprite):
         #update mask
         self.mask = pygame.mask.from_surface(self.image)
     
+    # quando o personagem pegar o power up
+    def pick(self):
+        self.disable()
+
     # pick sai da tela e fica inativa, pode ser usado pra quando você pega e ela sai da tela
     def disable(self):
         self.rect.center = [-self.rect.width, -self.rect.height]
         self.active = False
+
+
+class Pickup_HP (Pickup):
+    def __init__(self) -> None:
+        Pickup.__init__(self)
         
+        #pygame.sprite.Sprite.__init__(self)
+        
+        self.image = pygame.image.load("Projeto_IP/assets/pickup_hp.png")
+        self.pickup_type = PICKUP_HP
+    
+    
+
+class Pickup_PowerUp1 (Pickup):
+    def __init__(self) -> None:
+        Pickup.__init__(self)
+        
+        #pygame.sprite.Sprite.__init__(self)
+        
+        self.image = pygame.image.load("Projeto_IP/assets/pickup_1.png")
+        self.pickup_type = PICKUP_POWERUP1
+    
+    
+    def update(self):
+        Pickup.update(self)
+        
+        # zig zag
+        if self.active:
+            speed_x = int (sin(pygame.time.get_ticks()/1000 * 6) * 3)
+            self.rect.x += speed_x
+
+class Pickup_PowerUp2 (Pickup):
+    def __init__(self) -> None:
+        Pickup.__init__(self)
+        
+        #pygame.sprite.Sprite.__init__(self)
+        
+        self.image = pygame.image.load("Projeto_IP/assets/pickup_2.png")
+        self.pickup_type = PICKUP_POWERUP2
+    
+    
+    def update(self):
+        Pickup.update(self)
+        
+        # zig zag
+        if self.active:
+            speed_x = int (sin(pygame.time.get_ticks()/1000 * 6) * 3)
+            self.rect.x += speed_x
+    
+                         
+            
+
+
+        
+
+class Pickup_PowerUp3 (Pickup):
+    def __init__(self) -> None:
+        Pickup.__init__(self)
+        
+        #pygame.sprite.Sprite.__init__(self)
+        
+        self.image = pygame.image.load("Projeto_IP/assets/pickup_3.png")
+        self.pickup_type = PICKUP_POWERUP3
+    
+    
+    def update(self):
+        Pickup.update(self)
+        
+        # zig zag
+        if self.active:
+            speed_x = int (sin(pygame.time.get_ticks()/1000 * 6) * 3)
+            self.rect.x += speed_x
+
+
+
+
 
 pickups_group = pygame.sprite.Group()
 
 for i in range(3):
-    new_pu = Pickup()
+    new_pu = Pickup_HP()
     pickups_group.add(new_pu)
 
+for i in range(3):
+    new_pu = Pickup_PowerUp1()
+    pickups_group.add(new_pu)
+
+for i in range(3):
+    new_pu = Pickup_PowerUp2()
+    pickups_group.add(new_pu)
+
+for i in range(3):
+    new_pu = Pickup_PowerUp3()
+    pickups_group.add(new_pu)
 
 # classe do projetil
 class Projectile (pygame.sprite.Sprite):
     def __init__(self) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("Projeto_IP/projectile.png")
+        self.image = pygame.image.load("projectile.png")
         self.rect = self.image.get_rect()
         self.rect.center = [-self.rect.width, -self.rect.height]
 
@@ -215,7 +316,7 @@ class Player (pygame.sprite.Sprite):
     
     def __init__(self, x, y,health) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("Projeto_IP/nave.png")
+        self.image = pygame.image.load("nave.png")
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
 
@@ -279,10 +380,13 @@ player_group.add(player)
 # timer para dropar os pickups, apenas para fins de testes
 timer = 0.0
    
+# temporario so pra testar os pickups caindo
+comp_test = 0
+
+
 
 # loop principal
 while True:
-
     # fecha a janela
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -299,16 +403,21 @@ while True:
     player_group.update()
     projectile_group.update()
     
-
-    # criacao dos pickups
-    if timer > 4:
+    
+    # criacao dos pickups, coloquei essa comp_test pra testar todos os tipos
+    if timer > 3:
         timer = 0
 
         for pu in pickups_group:
-            if pu.active == False:
+            if pu.active == False and pu.pickup_type == comp_test:
                 pu.spawn_rand()
 
                 break
+        
+        comp_test +=1
+
+        if comp_test > 3:
+            comp_test = 0
 
 
     # as chamadas de draw devem ser feitas de trás pra frente
@@ -323,8 +432,22 @@ while True:
     player_group.draw(game_screen)
 
     #checar se pegou pickup
-    if pygame.sprite.spritecollide(player, pickups_group, True):
+    # alterei aqui para ao inves de remover o sprite ele chamar o metodo disable
+    # assim ele não é removido, e sim desabilitado e fica pronto par ser usado de novo
+    pu_collisions = pygame.sprite.spritecollide(player, pickups_group, False)
+
+    for col in pu_collisions:
+        if isinstance(col, Pickup_HP):
             player.health_remaining += 10
+        elif isinstance(col,Pickup_PowerUp1):
+            print('power up 1')
+        elif isinstance(col,Pickup_PowerUp2):
+            print('power up 2')
+        elif isinstance(col,Pickup_PowerUp3):
+            print('power up 3')        
+        
+        col.pick()
+    
 
     # função com os textos
     txt_health = text(player.health_remaining)
