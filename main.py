@@ -50,13 +50,13 @@ border_group = pygame.sprite.Group()
 for i in range(1 + int (screen_height / 16)):
     # sprite da borda da direita
     border = Sprite()
-    border.image = pygame.image.load('Projeto_IP/assets/border.png')
+    border.image = pygame.image.load('./assets/border.png')
     border.rect = border.image.get_rect()
     border.rect.topleft = (playable_area_right , i * border.rect.height)
     
     # sprite da borda da esquerda
     border_r = Sprite()
-    border_r.image = pygame.transform.rotate(pygame.image.load('Projeto_IP/assets/border.png'), 180)
+    border_r.image = pygame.transform.rotate(pygame.image.load('./assets/border.png'), 180)
     border_r.rect = border.image.get_rect()
     border_r.rect.topright = (playable_area_left , i * border.rect.height)
 
@@ -70,7 +70,7 @@ bg_group = pygame.sprite.Group()
 
 # fundo principal (estático)
 bg_main = Sprite()
-bg_main.image = pygame.image.load('Projeto_IP/assets/bg.png')
+bg_main.image = pygame.image.load('./assets/bg.png')
 bg_main.rect = bg_main.image.get_rect()
 bg_main.rect.topleft = (playable_area_left, 0)
 
@@ -81,7 +81,7 @@ paralax_group = pygame.sprite.Group()
 
 for i in range(2):
     parallax_1 = Sprite()
-    parallax_1.image = pygame.image.load('Projeto_IP/assets/poeira 1.png')
+    parallax_1.image = pygame.image.load('./assets/poeira 1.png')
     parallax_1.rect = bg_main.image.get_rect()
     parallax_1.rect.topleft = (playable_area_left, parallax_1.rect.height * i)
 
@@ -89,7 +89,7 @@ for i in range(2):
     parallax_1.speed = 1
 
     parallax_2 = Sprite()
-    parallax_2.image = pygame.image.load('Projeto_IP/assets/poeira 2.png')
+    parallax_2.image = pygame.image.load('./assets/poeira 2.png')
     parallax_2.rect = bg_main.image.get_rect()
     parallax_2.rect.topleft = (playable_area_left, parallax_2.rect.height * i)
 
@@ -124,7 +124,7 @@ def draw_bg():
 class Pickup (pygame.sprite.Sprite):
     def __init__(self) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("Projeto_IP/assets/pickup_hp.png")
+        self.image = pygame.image.load("./assets/pickup_hp.png")
         self.rect = self.image.get_rect()
         self.rect.center = [-self.rect.width, -self.rect.height]
         self.active = False
@@ -163,7 +163,7 @@ for i in range(3):
 class Projectile (pygame.sprite.Sprite):
     def __init__(self) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("Projeto_IP/projectile.png")
+        self.image = pygame.image.load("./projectile.png")
         self.rect = self.image.get_rect()
         self.rect.center = [-self.rect.width, -self.rect.height]
 
@@ -210,7 +210,7 @@ class Player (pygame.sprite.Sprite):
     
     def __init__(self, x, y,health) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("Projeto_IP/nave.png")
+        self.image = pygame.image.load("./nave.png")
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
 
@@ -226,7 +226,7 @@ class Player (pygame.sprite.Sprite):
                 i.rect.y = self.rect.y
                 i.shot = True
                 
-                pygame.mixer.Sound('Projeto_IP/assets/Laser_shoot.wav').play()  # adiciona pew pew pew
+                pygame.mixer.Sound('./assets/Laser_shoot.wav').play()  # adiciona pew pew pew
                 return
 
     # update que é chamado a cada frame
@@ -273,7 +273,6 @@ player_group.add(player)
 
 # timer para dropar os pickups, apenas para fins de testes
 timer = 0.0
-   
 
 # loop principal
 while True:
