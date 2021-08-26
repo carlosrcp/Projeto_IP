@@ -8,7 +8,7 @@ from pygame import key
 from pygame import time
 from pygame import fastevent
 from pygame import sprite
-from pygame.constants import FULLSCREEN, KEYDOWN, RESIZABLE
+from pygame.constants import FULLSCREEN, GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH, KEYDOWN, RESIZABLE
 from pygame.display import update
 from pygame.math import disable_swizzling
 
@@ -45,8 +45,19 @@ green = (0,255,0)
 # tamanho dos quadrados inimigos (pode ser retirado no momento que forem adicionados as imagens de inimigos)
 square_sizes = [11,15,19,20]
 
+# usado para dar spawn de powerups
+kill_count = 0
+
 # dificuldade padrao
 standard_dificulty = 0
+
+# inimigos mortos/ variavel criada para alterar a dificuldade conforme os inimigos forem mortos
+enemies_killed = 0
+
+# contadores
+ondas = 0
+enemies_killed_total = enemies_killed
+current_dificulty = standard_dificulty
 
 # a largura disponível pra a área jogável
 playable_width = 202
@@ -172,7 +183,7 @@ class Pickup (pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = [-self.rect.width, -self.rect.height]
         self.active = False
-        self.speed = 3
+        self.speed = 2
         self.pickup_type = PICKUP_HP
 
 
@@ -218,6 +229,10 @@ class Pickup_HP (Pickup):
         self.pickup_type = PICKUP_HP
     
     
+    def pick(self):
+        Pickup.pick(self)
+
+        player.health_remaining = max(100, player.health_remaining + 30)
 
 class Pickup_PowerUp1 (Pickup):
     def __init__(self) -> None:
@@ -236,6 +251,11 @@ class Pickup_PowerUp1 (Pickup):
         if self.active:
             speed_x = int (sin(pygame.time.get_ticks()/1000 * 6) * 3)
             self.rect.x += speed_x
+    
+    def pick(self):
+        Pickup.pick(self)
+
+        player.machinegun_up()
 
 class Pickup_PowerUp2 (Pickup):
     def __init__(self) -> None:
@@ -243,7 +263,7 @@ class Pickup_PowerUp2 (Pickup):
         
         #pygame.sprite.Sprite.__init__(self)
         
-        self.image = pygame.image.load("./assets/pickup_2.png")
+        self.image = pygame.image.load("./assets/pickup_3.png")
         self.pickup_type = PICKUP_POWERUP2
     
     
@@ -254,6 +274,11 @@ class Pickup_PowerUp2 (Pickup):
         if self.active:
             speed_x = int (sin(pygame.time.get_ticks()/1000 * 6) * 3)
             self.rect.x += speed_x
+    
+    def pick(self):
+        Pickup.pick(self)
+
+        player.shotgun_up()
 
 class Pickup_PowerUp3 (Pickup):
     def __init__(self) -> None:
@@ -261,7 +286,7 @@ class Pickup_PowerUp3 (Pickup):
         
         #pygame.sprite.Sprite.__init__(self)
         
-        self.image = pygame.image.load("./assets/pickup_3.png")
+        self.image = pygame.image.load("./assets/pickup_2.png")
         self.pickup_type = PICKUP_POWERUP3
     
     
@@ -291,8 +316,7 @@ for i in range(3):
     new_pu = Pickup_PowerUp3()
     pickups_group.add(new_pu)
 
-# inimigos mortos/ variavel criada para alterar a dificuldade conforme os inimigos forem mortos
-enemies_killed = 0
+
 
 # classe do projetil
 class Projectile (pygame.sprite.Sprite):
@@ -304,6 +328,7 @@ class Projectile (pygame.sprite.Sprite):
 
         # se shot for falso, significa que o projetil está inativo e pode ser disparado
         self.shot = False
+        self.speed_x = 0
     
     def update(self):
         
@@ -311,18 +336,27 @@ class Projectile (pygame.sprite.Sprite):
         if self.shot:
             speed = 5
             self.rect.y -= speed
+            self.rect.x += self.speed_x
         
         # se o projetil sair da tela, ficar inativo
-        if self.rect.y < - 16:
-            self.shot = False
+        if self.shot and self.rect.y < - 16:
+            self.disable()
+            #self.shot = False
         
-        if pygame.sprite.spritecollide(self,enemies_group,True):
-            self.kill()
-            create_projectiles(1)
-            global enemies_killed
-            enemies_killed += 1
-            global enemies_killed_total
-            enemies_killed_total += 1
+        hits = pygame.sprite.spritecollide(self,enemies_group, False)
+        #if pygame.sprite.spritecollide(self,enemies_group,True):
+        for hit in hits:
+            if self.shot:
+                self.disable()
+
+                hit.die()
+                #break
+    
+    def disable(self):
+        self.rect.center = [-self.rect.width, -self.rect.height]
+        self.shot = False
+
+
 
 # grupo que guarda os projeteis a ser disparados
 projectile_group = pygame.sprite.Group()
@@ -334,7 +368,7 @@ def create_projectiles(value: int):
 
         projectile_group.add(new_projectile)
 
-create_projectiles(3)
+create_projectiles(30)
 
 class Alien_Projectile (pygame.sprite.Sprite):
     def __init__(self,x,y) -> None:
@@ -379,20 +413,65 @@ class Player (pygame.sprite.Sprite):
         self.health_remaining = health
         self.trigger = False
 
+        
+        self.machinegun_level = 0
+        self.reload_rate = 20
+        self.reload_count = self.reload_rate
+
+        self.shotgun_level = 0
+        self.shotgun_rate = 6
+        self.shotgun_count = self.shotgun_rate
+
     # atirar se houve projetile disponivel
-    def shoot(self):
+    def shoot(self, speed_x):
         for i in projectile_group:
             if i.shot == False:
                 # tiro foi disparado
                 i.rect.x = self.rect.x
                 i.rect.y = self.rect.y
                 i.shot = True
+                i.speed_x = speed_x
+
+                self.reload_count = self.reload_rate                    
                 
                 pygame.mixer.Sound('./assets/Laser_shoot.wav').play()  # adiciona pew pew pew
                 return
+    
+    def shoot_shotgun(self):
+        self.shotgun_count = self.shotgun_rate
+        self.shoot(0)
+        self.shoot(1)
+        self.shoot(-1)
 
+    def machinegun_up(self):
+        self.machinegun_level += 1
+
+        if self.machinegun_level == 1:
+            self.reload_rate = 16
+        elif self.machinegun_level == 2:
+            self.reload_rate = 12
+        elif self.machinegun_level == 3:
+            self.reload_rate = 8
+        elif self.machinegun_level == 4:
+            self.reload_rate = 6
+    
+    
+    def shotgun_up(self):
+        self.shotgun_level += 1
+
+        if self.shotgun_level == 1:
+            self.shotgun_rate = 5
+        elif self.shotgun_level == 2:
+            self.shotgun_rate = 4
+        elif self.shotgun_level == 3:
+            self.shotgun_rate = 3
+        elif self.shotgun_level == 4:
+            self.shotgun_rate = 2
+    
     # update que é chamado a cada frame
     def update(self):
+        
+        self.reload_count = max(0, self.reload_count - 1)
 
         # velocidade da nave, precisa ser ajustada em diagonais        
         speed = 4
@@ -417,12 +496,41 @@ class Player (pygame.sprite.Sprite):
         # checa e dispara os projeteis
         if key_pressed[pygame.K_SPACE]:
             
-            if not(self.trigger):
-                self.shoot()
+            if (not(self.trigger) and self.reload_count < 10) or self.reload_count == 0:
+                if self.shotgun_count == 0 and self.shotgun_level > 0:
+                    self.shoot_shotgun()
+                else:
+                    self.shoot(0)
+                    self.shotgun_count = max(0, self.shotgun_count - 1)
 
             self.trigger = True
         else:
             self.trigger = False
+
+
+# cria um drop na posicao x, y
+def spawn_drop(x, y):
+    
+    drop_type = PICKUP_HP
+    
+    # se tiver com a vida cheia dropar power up, se não dropar vida
+    if player.health_remaining == 100:
+        rand = random.randint(0,1)
+
+        if rand == 0:
+            drop_type = PICKUP_POWERUP1
+        elif rand == 1:
+            drop_type = PICKUP_POWERUP2
+        else:
+            drop_type = PICKUP_POWERUP3
+
+    for p in pickups_group:
+        if p.pickup_type == drop_type and not(p.active):
+            p.spawn(x,y)
+            
+            break
+
+
 
 class EnemySquare(pygame.sprite.Sprite):
     def __init__(self,type,x_adjust,y_adjust):
@@ -462,6 +570,21 @@ class EnemySquare(pygame.sprite.Sprite):
                 self.rect.y += 4
                 self.enemy_speed *= -1
                 self.moving_counter *= self.enemy_speed
+    
+    # chamada quando o inimigo for atingido e morrer
+    def die(self):
+        global enemies_killed
+        enemies_killed += 1
+        global enemies_killed_total
+        enemies_killed_total += 1
+        global kill_count
+        kill_count += 1
+
+        if kill_count > 5:
+            kill_count = 0
+            spawn_drop(self.rect.x, self.rect.y)
+        
+        self.kill()
 
 enemies_group = pygame.sprite.Group()
 
@@ -486,12 +609,12 @@ player_group.add(player)
 timer = 0.0
 
 # temporario so pra testar os pickups caindo
-comp_test = 0
+#comp_test = 0
 
 
-ondas = 0
-enemies_killed_total = enemies_killed
-current_dificulty = standard_dificulty
+
+
+
 
 # def game_over():
 
@@ -666,20 +789,22 @@ def game():
                 
                 # main_menu(False)
         
+
+        # REMOVER
         # criacao dos pickups, coloquei essa comp_test pra testar todos os tipos
-        if timer > 3:
-            timer = 0
-
-            for pu in pickups_group:
-                if pu.active == False and pu.pickup_type == comp_test:
-                    pu.spawn_rand()
-
-                    break
-        
-            comp_test +=1
-
-            if comp_test > 3:
-                comp_test = 0
+        #if timer > 3:
+        #    timer = 0
+        #
+        #    for pu in pickups_group:
+        #        if pu.active == False and pu.pickup_type == comp_test:
+        #            pu.spawn_rand()
+        #
+        #            break
+        #
+        #    comp_test +=1
+        #
+        #    if comp_test > 3:
+        #        comp_test = 0
     
         # as chamadas de draw devem ser feitas de trás pra frente
         # começando pelo fundo e terminando pelo jogador
@@ -708,16 +833,8 @@ def game():
         pu_collisions = pygame.sprite.spritecollide(player, pickups_group, False)
 
         for col in pu_collisions:
-            if isinstance(col, Pickup_HP):
-                player.health_remaining += 10
-            elif isinstance(col,Pickup_PowerUp1):
-                print('power up 1')
-            elif isinstance(col,Pickup_PowerUp2):
-                print('power up 2')
-            elif isinstance(col,Pickup_PowerUp3):
-                print('power up 3')        
-            
-            col.pick()
+            if col.active:
+                 col.pick()           
         
         # hp_sfx = pygame.mixer.Sound("assets/HP.wav")
         # pygame.mixer.Sound.play(hp_sfx)
