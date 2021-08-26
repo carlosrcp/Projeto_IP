@@ -90,7 +90,7 @@ border_group = pygame.sprite.Group()
 # definindo uma funcao para desenha texto
 def draw_text(text, font, tex_col, x, y):
     img = font.render(text,True, tex_col)
-    screen.blit(img, (x,y))
+    game_screen.blit(img, (x,y))
 
 def draw_text1(text, font, tex_col, x, y):
     img = font.render(text,True, tex_col)
@@ -150,7 +150,7 @@ for i in range(2):
 
 # função para desenhar o background, coisas a mais como estrelas ao fundo devem ser adicionados aqui
 def draw_bg():
-    game_screen.blit(bg_surface, (0,0))
+    #game_screen.blit(bg_surface, (0,0))
 
     bg_group.draw(game_screen)
 
@@ -163,10 +163,17 @@ def draw_bg():
 
     paralax_group.draw(game_screen)
 
-    border_group.draw(game_screen)
 
     #for i in range(screen_height/border.rect.height):
     #    game_screen.blit(border, (0, i * border.rect.height))
+
+# função para desenhar as bordas da tela
+def draw_borders():
+    game_screen.blit(bg_surface, (playable_area_right,0))
+    game_screen.blit(bg_surface, (playable_area_left - screen_width,0))
+
+    border_group.draw(game_screen)
+
 
 
 # para ser comparados depois
@@ -185,6 +192,7 @@ class Pickup (pygame.sprite.Sprite):
         self.active = False
         self.speed = 2
         self.pickup_type = PICKUP_HP
+        self.timer = 0
 
 
     
@@ -192,16 +200,22 @@ class Pickup (pygame.sprite.Sprite):
 
         self.active = True
         self.rect.center = [random.randint(playable_area_left, playable_area_right - self.rect.width) , 0]
+        self.timer = 0
 
     def spawn(self, x, y):
         self.active = True
         self.rect.center = [x,y]
+        self.timer = 0
     
     def update(self):
         if not(self.active):
             return
 
-        self.rect.y +=self.speed
+        #dt = clock.tick(max_fps)
+    
+        self.timer += 1.0 / max_fps
+
+        self.rect.y += self.speed
 
         if self.rect.y > screen_height + 16:
             self.active = False
@@ -249,7 +263,7 @@ class Pickup_PowerUp1 (Pickup):
         
         # zig zag
         if self.active:
-            speed_x = int (sin(pygame.time.get_ticks()/1000 * 6) * 3)
+            speed_x = int (sin(self.timer * 6) * 3)
             self.rect.x += speed_x
     
     def pick(self):
@@ -272,7 +286,7 @@ class Pickup_PowerUp2 (Pickup):
         
         # zig zag
         if self.active:
-            speed_x = int (sin(pygame.time.get_ticks()/1000 * 6) * 3)
+            speed_x = int (sin(self.timer * 6) * 3)
             self.rect.x += speed_x
     
     def pick(self):
@@ -295,7 +309,7 @@ class Pickup_PowerUp3 (Pickup):
         
         # zig zag
         if self.active:
-            speed_x = int (sin(pygame.time.get_ticks()/1000 * 6) * 3)
+            speed_x = int (sin(self.timer * 6) * 3)
             self.rect.x += speed_x
 
 pickups_group = pygame.sprite.Group()
@@ -368,7 +382,7 @@ def create_projectiles(value: int):
 
         projectile_group.add(new_projectile)
 
-create_projectiles(30)
+create_projectiles(60)
 
 class Alien_Projectile (pygame.sprite.Sprite):
     def __init__(self,x,y) -> None:
@@ -414,10 +428,12 @@ class Player (pygame.sprite.Sprite):
         self.trigger = False
 
         
+        self.machinegun_list = [20,16,12,10,8,6,4]
         self.machinegun_level = 0
         self.reload_rate = 20
         self.reload_count = self.reload_rate
 
+        self.shotgun_list = [7,5,4,3,2,1,0]
         self.shotgun_level = 0
         self.shotgun_rate = 6
         self.shotgun_count = self.shotgun_rate
@@ -444,29 +460,35 @@ class Player (pygame.sprite.Sprite):
         self.shoot(-1)
 
     def machinegun_up(self):
-        self.machinegun_level += 1
+        #self.machinegun_level += 1
+        self.machinegun_level = min(self.machinegun_level + 1, len(self.machinegun_list) - 1)
 
-        if self.machinegun_level == 1:
-            self.reload_rate = 16
-        elif self.machinegun_level == 2:
-            self.reload_rate = 12
-        elif self.machinegun_level == 3:
-            self.reload_rate = 8
-        elif self.machinegun_level == 4:
-            self.reload_rate = 6
+        self.reload_rate = self.machinegun_list[self.machinegun_level]
+
+        #if self.machinegun_level == 1:
+        #    self.reload_rate = 16
+        #elif self.machinegun_level == 2:
+        #    self.reload_rate = 12
+        #elif self.machinegun_level == 3:
+        #    self.reload_rate = 8
+        #elif self.machinegun_level == 4:
+        #    self.reload_rate = 6
     
     
     def shotgun_up(self):
-        self.shotgun_level += 1
+        self.shotgun_level = min(self.shotgun_level + 1, len(self.shotgun_list) - 1)
 
-        if self.shotgun_level == 1:
-            self.shotgun_rate = 5
-        elif self.shotgun_level == 2:
-            self.shotgun_rate = 4
-        elif self.shotgun_level == 3:
-            self.shotgun_rate = 3
-        elif self.shotgun_level == 4:
-            self.shotgun_rate = 2
+        self.shotgun_rate = self.shotgun_list[self.shotgun_level]
+        
+
+        #if self.shotgun_level == 1:
+        #    self.shotgun_rate = 5
+        #elif self.shotgun_level == 2:
+        #    self.shotgun_rate = 4
+        #elif self.shotgun_level == 3:
+        #    self.shotgun_rate = 3
+        #elif self.shotgun_level == 4:
+        #    self.shotgun_rate = 2
     
     # update que é chamado a cada frame
     def update(self):
@@ -634,9 +656,9 @@ def main_menu():
             if event.type == pygame.QUIT:
                 run = False
         
-        screen.blit(bg_surface,(0,0))
+        game_screen.blit(bg_surface,(0,0))
         
-        bg_group.draw(screen)
+        bg_group.draw(game_screen)
 
         # movimento do paralax
         for p in paralax_group:
@@ -645,18 +667,18 @@ def main_menu():
             if p.rect.y > screen_height/2 + p.rect.height / 2:
                 p.rect.y -= p.rect.height * 2
 
-        paralax_group.draw(screen)
+        paralax_group.draw(game_screen)
 
-        border_group.draw(screen)
+        border_group.draw(game_screen)
         
-        pickups_group.draw(screen)
-        projectile_group.draw(screen)    
-        player_group.draw(screen)
-        enemies_group.draw(screen)
+        pickups_group.draw(game_screen)
+        projectile_group.draw(game_screen)    
+        player_group.draw(game_screen)
+        enemies_group.draw(game_screen)
         
-        pickups_group.update()
-        player_group.update()
-        projectile_group.update()
+        #pickups_group.update()
+        #player_group.update()
+        #projectile_group.update()
         # enemies_group.update(current_dificulty)
         
         draw_text('1 - Start',font40, white,50,200)
@@ -672,8 +694,13 @@ def main_menu():
         if menu_key[pygame.K_2]:
             run = False
         
-        pygame.display.update()
+        # aumenta o tamanho da game_screen e desenha ela na screen
+        screenshot = pygame.transform.scale(game_screen, screen.get_rect().size)
+
+        screen.blit(screenshot, (0,0))
         
+        pygame.display.update()
+
 
 
 
@@ -819,6 +846,10 @@ def game():
         enemies_group.draw(game_screen)
         enemies_projectile_group.draw(game_screen)
 
+        
+        # draw top
+        draw_borders()
+
         if countdown > 0:
             draw_text1('GET READY!', font40, white, playable_area_center-110, 200)
             draw_text1(str(countdown), font40, white, playable_area_center-10, 250)
@@ -839,6 +870,7 @@ def game():
         # hp_sfx = pygame.mixer.Sound("assets/HP.wav")
         # pygame.mixer.Sound.play(hp_sfx)
 
+
         # função com os textos
         txt_health = text(player.health_remaining)
         game_screen.blit(txt_health, (10,10))
@@ -848,6 +880,15 @@ def game():
         game_screen.blit(enemies_display, (10,90))
         waves_display = standard_font.render(f'onda atual: {ondas+1}',False,'White')
         game_screen.blit(waves_display, (10,130))
+
+        lvl1 = player.machinegun_level if player.machinegun_level < len(player.machinegun_list) - 1 else 'max'
+        powerup1_display = standard_font.render(f'speed lvl: {lvl1}',False,'White')
+        game_screen.blit(powerup1_display, (playable_area_right + 10, screen_height - 60))
+        
+        lvl2 = player.shotgun_level if player.shotgun_level < len(player.shotgun_list) - 1 else 'max'
+        powerup2_display = standard_font.render(f'shotgun lvl: {lvl2}',False,'White')
+        game_screen.blit(powerup2_display, (playable_area_right + 10, screen_height - 40))
+
 
         # aumenta o tamanho da game_screen e desenha ela na screen
         screenshot = pygame.transform.scale(game_screen, screen.get_rect().size)
