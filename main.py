@@ -2,6 +2,7 @@
 from math import sin
 import pygame
 from sys import exit
+from math import floor
 from pygame import draw
 from pygame import key
 from pygame import time
@@ -20,6 +21,32 @@ pygame.init()
 # resolução da tela em pixels
 screen_height = 360
 screen_width = 640
+
+alien_cooldown = 1000 # recarge do projetil dos aliens em ms
+last_enemy_shot = pygame.time.get_ticks()
+countdown = 3
+last_count = pygame.time.get_ticks()
+game_over = 0
+
+# posicao inicial do primeiro inimigo
+x_pos = 250
+y_pos = 20
+
+# fonts
+standard_font = pygame.font.Font(None, 30)
+font30 = pygame.font.SysFont('Constantia', 30)
+font40 = pygame.font.SysFont('Constantia', 40)
+
+# definindo cores
+white = (255, 255, 255)
+red = (255, 0, 0)
+green = (0,255,0)
+
+# tamanho dos quadrados inimigos (pode ser retirado no momento que forem adicionados as imagens de inimigos)
+square_sizes = [11,15,19,20]
+
+# dificuldade padrao
+standard_dificulty = 0
 
 # a largura disponível pra a área jogável
 playable_width = 202
@@ -48,6 +75,11 @@ bg_surface.fill('black')
 
 # borda da área jogavel
 border_group = pygame.sprite.Group()
+
+# definindo uma funcao para desenha texto
+def draw_text(text, font, tex_col, x, y):
+    img = font.render(text,True, tex_col)
+    game_screen.blit(img, (x,y))
 
 for i in range(1 + int (screen_height / 16)):
     # sprite da borda da direita
@@ -255,11 +287,14 @@ for i in range(3):
     new_pu = Pickup_PowerUp3()
     pickups_group.add(new_pu)
 
+# inimigos mortos/ variavel criada para alterar a dificuldade conforme os inimigos forem mortos
+enemies_killed = 0
+
 # classe do projetil
 class Projectile (pygame.sprite.Sprite):
     def __init__(self) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("projectile.png")
+        self.image = pygame.image.load("./assets/projectile.png")
         self.rect = self.image.get_rect()
         self.rect.center = [-self.rect.width, -self.rect.height]
 
@@ -270,24 +305,51 @@ class Projectile (pygame.sprite.Sprite):
         
         # se o projetil tiver sido disparado
         if self.shot:
-            speed = 8
+            speed = 5
             self.rect.y -= speed
         
         # se o projetil sair da tela, ficar inativo
         if self.rect.y < - 16:
             self.shot = False
         
+        if pygame.sprite.spritecollide(self,enemies_group,True):
+            self.kill()
+            create_projectiles(1)
+            global enemies_killed
+            enemies_killed += 1
+            global enemies_killed_total
+            enemies_killed_total += 1
 
 # grupo que guarda os projeteis a ser disparados
 projectile_group = pygame.sprite.Group()
-for i in range(3): # em range(X), x é o número de projeteis
+
+def create_projectiles(value: int):
+    for i in range(value): # em range(X), x é o número de projeteis
     # projetil é criado fora da tela e adicionado ao grupo
-    new_projectile = Projectile()
+        new_projectile = Projectile()
 
-    projectile_group.add(new_projectile)
+        projectile_group.add(new_projectile)
 
+create_projectiles(3)
 
-white = (255, 255, 255)
+class Alien_Projectile (pygame.sprite.Sprite):
+    def __init__(self,x,y) -> None:
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("assets/projectiled.png")
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+    
+    def update(self):
+        self.rect.y += 2
+        if self.rect.top > screen_height:
+            self.kill()
+        
+        if pygame.sprite.spritecollide(self,player_group,False):
+            self.kill()
+            player.health_remaining -= 50 
+
+enemies_projectile_group = pygame.sprite.Group()
+
 health_font = pygame.font.SysFont('comicsans', 30)
 
 #função que contem os textos com os atributos atuais
@@ -306,7 +368,7 @@ class Player (pygame.sprite.Sprite):
     
     def __init__(self, x, y,health) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("nave.png")
+        self.image = pygame.image.load("assets/nave.png")
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
 
@@ -358,6 +420,58 @@ class Player (pygame.sprite.Sprite):
         else:
             self.trigger = False
 
+class EnemySquare(pygame.sprite.Sprite):
+    def __init__(self,type,x_adjust,y_adjust):
+        super().__init__()
+        self.x = x_pos
+        self.y = y_pos
+        self.moving_counter = 0
+        self.enemy_speed = 1
+        index_class = 0
+
+        classes = ['assets/class1.png','assets/class2.png','assets/class3.png']
+        
+        if y_adjust == 0 or y_adjust == 1:
+            index_class = 0
+        elif y_adjust == 2 or y_adjust == 3:
+            index_class = 1
+        elif y_adjust == 4 or y_adjust == 5:
+            index_class = 2
+
+        self.image = pygame.image.load(classes[index_class])
+        # self.image = pygame.image.load((square_sizes[type],square_sizes[type]))
+        # self.image.fill((150,64,64))
+        self.rect = self.image.get_rect(center = (self.x + (x_adjust*(square_sizes[2] + 9)),self.y + (y_adjust*(square_sizes[2] + 9))))
+    
+    def update(self,ind: int):
+        self.dificulties = [1,2,4,8,16,32,64,128]
+        self.time = 2 + floor(pygame.time.get_ticks()/100)
+
+        # ####### timer criado com proposito de teste #########
+        # self.time_display = standard_font.render(f'timer: {self.time}',False,'White')
+        # screen.blit(self.time_display,(10,100))
+
+        if self.time == int(self.time) and self.time % (16/self.dificulties[ind]) == 0:
+            self.rect.x += self.enemy_speed
+            self.moving_counter += 1
+            if abs(self.moving_counter) >= 22:
+                self.rect.y += 4
+                self.enemy_speed *= -1
+                self.moving_counter *= self.enemy_speed
+
+enemies_group = pygame.sprite.Group()
+
+def create_enemies(waves: int):
+    if waves > 4:
+        waves = 4
+    for j in range(6):
+        for i in range(6):
+            enemies_group.add(EnemySquare(floor(j/2),i,j + waves))
+
+create_enemies(0)
+
+
+running = True
 
 # grupo dos jogadores, só tem 1
 player_group = pygame.sprite.Group()
@@ -373,25 +487,73 @@ timer = 0.0
 # temporario so pra testar os pickups caindo
 comp_test = 0
 
+
+ondas = 0
+enemies_killed_total = enemies_killed
+current_dificulty = standard_dificulty
+
+
+# carrega e toca a música
+# # sujeito a mudnça caso menu seja implementado
+pygame.mixer.music.load("assets/Space_0.wav")
+pygame.mixer.music.play(-1)
+pygame.mixer.music.set_volume(1.0)
+
 # loop principal
-while True:
+while running:
+
     # fecha a janela
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            pygame.quit()
-            exit()
+            running = False
+    
+    if player.health_remaining <= 0:
+        player.health_remaining = 0
+        game_over = -1
 
     # dt é o delta time, o tempo de um frame para o outro
     dt = clock.tick(max_fps)
     
     timer += dt / 1000.0
 
-    # update nos projeteis e jogador
-    pickups_group.update()
-    player_group.update()
-    projectile_group.update()
-    
-    
+    if enemies_killed == 0:
+        current_dificulty = 0 + ondas
+    elif enemies_killed < 32:
+        current_dificulty = floor(enemies_killed/8) + ondas
+        if current_dificulty > 7:
+            current_dificulty = 7
+
+    if not enemies_group:
+        if ondas < 6:
+            ondas += 1
+        
+        current_dificulty -= 2
+        enemies_killed = 0
+        
+        pygame.time.delay(1250)
+        create_enemies(ondas)
+
+    if countdown == 0:
+        
+
+        time_now = pygame.time.get_ticks()
+
+        if time_now - last_enemy_shot > alien_cooldown:
+            attacking_enemy = random.choice(enemies_group.sprites())
+            enemy_projectile = Alien_Projectile(attacking_enemy.rect.centerx, attacking_enemy.rect.bottom)
+            enemies_projectile_group.add(enemy_projectile)
+            last_enemy_shot = time_now    
+
+        if game_over == 0:
+            # update nos projeteis,jogador e inimigos
+            pickups_group.update()
+            player_group.update()
+            projectile_group.update()
+            enemies_group.update(current_dificulty)
+            enemies_projectile_group.update()
+        else:
+            draw_text('GAME READY!', font40, white, playable_area_center-100, 200)
+        
     # criacao dos pickups, coloquei essa comp_test pra testar todos os tipos
     if timer > 3:
         timer = 0
@@ -406,18 +568,36 @@ while True:
 
         if comp_test > 3:
             comp_test = 0
-
-
+    
+    """  # criacao dos pickups
+    if timer > 4:
+        timer = 0
+        for pu in pickups_group:
+            if pu.active == False:
+                pu.spawn_rand()
+                
+                break """
+    
     # as chamadas de draw devem ser feitas de trás pra frente
     # começando pelo fundo e terminando pelo jogador
 
     # desenha o fundo (tela preta)
     draw_bg()
     
-    # desenha os projeteis e o jogador
+    # desenha os projeteis, inimigos e o jogador
     pickups_group.draw(game_screen)
     projectile_group.draw(game_screen)    
     player_group.draw(game_screen)
+    enemies_group.draw(game_screen)
+    enemies_projectile_group.draw(game_screen)
+
+    if countdown > 0:
+        draw_text('GET READY!', font40, white, playable_area_center-110, 200)
+        draw_text(str(countdown), font40, white, playable_area_center-10, 250)
+        count_timer = pygame.time.get_ticks()
+        if count_timer - last_count > 1000:
+            countdown -= 1
+            last_count = count_timer
 
     #checar se pegou pickup
     # alterei aqui para ao inves de remover o sprite ele chamar o metodo disable
@@ -436,10 +616,18 @@ while True:
         
         col.pick()
     
+    # hp_sfx = pygame.mixer.Sound("assets/HP.wav")
+    # pygame.mixer.Sound.play(hp_sfx)
 
     # função com os textos
     txt_health = text(player.health_remaining)
     game_screen.blit(txt_health, (10,10))
+    dificulty_display = standard_font.render(f'dificuldade: {current_dificulty}',False,'White')
+    game_screen.blit(dificulty_display, (10,50))
+    enemies_display = standard_font.render(f'inimigos mortos: {enemies_killed_total}',False,'White')
+    game_screen.blit(enemies_display, (10,90))
+    waves_display = standard_font.render(f'onda atual: {ondas+1}',False,'White')
+    game_screen.blit(waves_display, (10,130))
 
     # aumenta o tamanho da game_screen e desenha ela na screen
     screenshot = pygame.transform.scale(game_screen, screen.get_rect().size)
@@ -448,5 +636,6 @@ while True:
     
     pygame.display.update()
 
-
-gig
+pygame.quit()
+exit()
+# gig
