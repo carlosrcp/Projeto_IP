@@ -339,7 +339,7 @@ for i in range(3):
 class Projectile (pygame.sprite.Sprite):
     def __init__(self) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("./assets/projectile.png")
+        self.image = pygame.image.load("./assets/projectilec2.png")
         self.rect = self.image.get_rect()
         self.rect.center = [-self.rect.width, -self.rect.height]
 
