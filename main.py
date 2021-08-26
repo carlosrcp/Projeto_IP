@@ -79,7 +79,9 @@ screen = pygame.display.set_mode((screen_width,screen_height),pygame.RESIZABLE)
 game_screen = screen.copy()
 
 # o nome da janela
-pygame.display.set_caption("nome teste")
+pygame.display.set_caption("Alien Attack")
+icon_game = pygame.image.load("assets/class3.png")
+pygame.display.set_icon(icon_game)
 # cria o clock que regula o framerate
 clock = pygame.time.Clock()
 
@@ -431,12 +433,12 @@ class Player (pygame.sprite.Sprite):
         self.trigger = False
 
         
-        self.machinegun_list = [20,16,12,10,8,6,4]
+        self.machinegun_list = [40,32,26,20,16,12,10]
         self.machinegun_level = 0
         self.reload_rate = 20
         self.reload_count = self.reload_rate
 
-        self.shotgun_list = [7,5,4,3,2,1,0]
+        self.shotgun_list = [14,12,10,8,6,4,2]
         self.shotgun_level = 0
         self.shotgun_rate = 6
         self.shotgun_count = self.shotgun_rate
@@ -894,7 +896,7 @@ def game():
 
         for col in pu_collisions:
             if col.active:
-                 col.pick()           
+                col.pick()           
         
         # hp_sfx = pygame.mixer.Sound("assets/HP.wav")
         # pygame.mixer.Sound.play(hp_sfx)
