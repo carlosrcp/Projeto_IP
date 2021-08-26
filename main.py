@@ -374,7 +374,8 @@ class Projectile (pygame.sprite.Sprite):
         for hit in hits:
             if self.shot:
                 self.disable()
-
+                
+                pygame.mixer.Sound('./assets/Explosion.wav').play()
                 hit.die()
                 #break
     
@@ -410,7 +411,8 @@ class Alien_Projectile (pygame.sprite.Sprite):
         
         if pygame.sprite.spritecollide(self,player_group,False):
             self.kill()
-            player.health_remaining -= 50 
+            player.health_remaining -= 50
+            pygame.mixer.Sound('assets/Explosion_1.wav').play()
 
 enemies_projectile_group = pygame.sprite.Group()
 
