@@ -495,7 +495,7 @@ current_dificulty = standard_dificulty
 
 # def game_over():
 
-
+# apenas desenha um menu com 2 opcoes
 def main_menu():
     
     global timer
@@ -583,7 +583,8 @@ def game():
             if event.type == pygame.QUIT:
                 running = False
                 return False
-    
+        
+        # checa de o jogador ainda esta vivo
         if player.health_remaining <= 0:
             player.health_remaining = 0
             game_over = -1
@@ -592,14 +593,16 @@ def game():
         dt = clock.tick(max_fps)
     
         timer += dt / 1000.0
-
+        
+        # altera a dificuldade
         if enemies_killed == 0:
             current_dificulty = 0 + ondas
         elif enemies_killed < 32:
             current_dificulty = floor(enemies_killed/8) + ondas
             if current_dificulty > 7:
                 current_dificulty = 7
-
+        
+        # checa se existe grupo de inimigos
         if not enemies_group:
             if ondas < 6:
                 ondas += 1
