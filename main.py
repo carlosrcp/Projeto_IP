@@ -232,7 +232,7 @@ class Pickup_HP (Pickup):
     def pick(self):
         Pickup.pick(self)
 
-        player.health_remaining = max(100, player.health_remaining + 30)
+        player.health_remaining = min(100, player.health_remaining + 30)
 
 class Pickup_PowerUp1 (Pickup):
     def __init__(self) -> None:
