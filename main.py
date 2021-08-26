@@ -18,6 +18,13 @@ import random
 from pygame.sprite import Sprite
 pygame.init()
 
+# GAME STATES
+STATE_MENU = 0
+STATE_RUN = 1
+
+last_state = -1
+current_state = STATE_MENU
+
 # resolução da tela em pixels
 screen_height = 360
 screen_width = 640
@@ -433,15 +440,30 @@ class Player (pygame.sprite.Sprite):
         
         self.machinegun_list = [20,16,12,10,8,6,4]
         self.machinegun_level = 0
-        self.reload_rate = 20
+        self.reload_rate = self.machinegun_list[0]
         self.reload_count = self.reload_rate
 
         self.shotgun_list = [7,5,4,3,2,1,0]
         self.shotgun_level = 0
-        self.shotgun_rate = 6
+        self.shotgun_rate = self.shotgun_list[0]
         self.shotgun_count = self.shotgun_rate
 
         self.active = True
+
+    def reset(self):
+        self.rect.x = playable_area_center
+        self.health_remaining = 100
+        self.trigger = False
+        self.active = True
+
+        self.machinegun_level = 0
+        self.reload_rate = self.machinegun_list[0]
+        self.reload_count = self.reload_rate
+
+        self.shotgun_level = 0
+        self.shotgun_rate = self.shotgun_list[0]
+        self.shotgun_count = self.shotgun_rate
+
 
     # atirar se houve projetile disponivel
     def shoot(self, speed_x):
@@ -647,6 +669,21 @@ timer = 0.0
 #comp_test = 0
 
 
+def reset():
+    for i in enemies_group:
+        i.kill()
+    for i in enemies_projectile_group:
+        i.kill()
+    
+    for i in pickups_group:
+        i.disable()
+    for i in projectile_group:
+        i.disable()
+    
+    
+    player.reset()
+
+
 
 # def game_over():
 
@@ -654,67 +691,267 @@ timer = 0.0
 def main_menu():
     
     global timer
+    ## carrega e toca a música
+    ## # sujeito a mudnça caso menu seja implementado
+    #pygame.mixer.music.load("assets/menu_0.wav")
+    #pygame.mixer.music.play(-1)
+    #pygame.mixer.music.set_volume(1.0)
+
+    run = True
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+    
+    game_screen.blit(bg_surface,(0,0))
+    
+    bg_group.draw(game_screen)
+    # movimento do paralax
+    for p in paralax_group:
+        p.rect.y += p.speed
+        if p.rect.y > screen_height/2 + p.rect.height / 2:
+            p.rect.y -= p.rect.height * 2
+    paralax_group.draw(game_screen)
+    border_group.draw(game_screen)
+    
+    pickups_group.draw(game_screen)
+    projectile_group.draw(game_screen)    
+    player_group.draw(game_screen)
+    enemies_group.draw(game_screen)
+    
+    #pickups_group.update()
+    #player_group.update()
+    #projectile_group.update()
+    # enemies_group.update(current_dificulty)
+    
+    draw_text('1 - Start',font40, white,50,200)
+    draw_text('2 - Exit',font40, white,50,250)
+    
+    menu_key = pygame.key.get_pressed()
+    
+    if menu_key[pygame.K_1]:        
+        global current_state
+        current_state = STATE_RUN
+        #pygame.mixer.music.unload()
+        #run = game()
+        
+    if menu_key[pygame.K_2]:
+        #run = False
+        quit()
+    
+    # aumenta o tamanho da game_screen e desenha ela na screen
+    screenshot = pygame.transform.scale(game_screen, screen.get_rect().size)
+    screen.blit(screenshot, (0,0))
+    
+    pygame.display.update()
+
+
+current_dificulty = 0
+
+def game():
+    global ondas
+    #ondas = 0
+    global countdown
+    #countdown = 3
+    global timer
+    #timer = 0.0
+    global enemies_killed
+    #enemies_killed = 0
+    global last_count
+    global comp_test
+    #comp_test = 0
+    global last_enemy_shot
+    global game_over
+    #game_over = 0
+
+    global wave_timer
+    global current_dificulty
+    
+    #pygame.mixer.music.load("assets/Space_0.wav")
+    #pygame.mixer.music.play(-1)
+    #pygame.mixer.music.set_volume(1.0)
+    
+    running = True
+# loop principal
+    #while running:
+        
+    # fecha a janela
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            return False
+    
+    # checa de o jogador ainda esta vivo
+    if player.health_remaining <= 0:
+        player.health_remaining = 0
+        global current_state
+        global STATE_MENU
+        current_state =  STATE_MENU
+        reset()
+        return
+        game_over = -1
+    # dt é o delta time, o tempo de um frame para o outro
+    dt = clock.tick(max_fps)
+
+    timer += dt / 1000.0
+    
+    # altera a dificuldade
+    if enemies_killed == 0:
+        current_dificulty = 0 + ondas
+    elif enemies_killed < 32:
+        current_dificulty = floor(enemies_killed/8) + ondas
+        if current_dificulty > 7:
+            current_dificulty = 7
+    
+    # checa se existe grupo de inimigos
+    if not enemies_group:
+        player.active = False
+        wave_timer += 1.0/60
+        
+        
+        if wave_timer > 4:
+            if ondas < 6:
+                ondas += 1
+            current_dificulty -= 2
+            enemies_killed = 0
+            wave_timer = 0.0
+            player.active = True
+            #pygame.time.delay(500)
+            create_enemies(ondas)
+    if countdown == 0:
+        time_now = pygame.time.get_ticks()
+        if time_now - last_enemy_shot > alien_cooldown and len(enemies_group) > 0:
+            attacking_enemy = random.choice(enemies_group.sprites())
+            enemy_projectile = Alien_Projectile(attacking_enemy.rect.centerx, attacking_enemy.rect.bottom)
+            enemies_projectile_group.add(enemy_projectile)
+            last_enemy_shot = time_now    
+        if game_over == 0:
+            # update nos projeteis,jogador e inimigos
+            pickups_group.update()
+            player_group.update()
+            projectile_group.update()
+            enemies_group.update(current_dificulty)
+            enemies_projectile_group.update()
+        else:
+            draw_text1('GAME OVER',font40, white, playable_area_center-110, 200 )
+            
+            running = False
+            return False
+            # pygame.mixer.music.unload()
+            #  running = False
+            
+            #  enemies_group.empty()
+            #  create_enemies(0)
+            
+            # projectile_group.empty()
+            #  create_projectiles(3)
+            
+            # pickups_group.empty()
+            # for i in range(3):
+            #     new_pu = Pickup_HP()
+            #      pickups_group.add(new_pu)
+            # for i in range(3):
+            #     new_pu = Pickup_PowerUp1()
+            #     pickups_group.add(new_pu)
+            # for i in range(3):
+            #  #     pickups_group.add(new_pu)
+            # for i in range(3):
+            #     new_pu = Pickup_PowerUp3()
+            #     pickups_group.add(new_pu)
+            
+            # player_group.empty()
+            # player = Player(int(screen_width/2), 9 * int(screen_height/10), 100)
+            #  player_group.add(player)
+            
+            # main_menu(False)
+    
+    # REMOVER
+    # criacao dos pickups, coloquei essa comp_test pra testar todos os tipos
+    #if timer > 3:
+    #    timer = 0
+    #
+    #    for pu in pickups_group:
+    #        if pu.active == False and pu.pickup_type == comp_test:
+    #            pu.spawn_rand()
+    #
+    #            break
+    #
+    #    comp_test +=1
+    #
+    #    if comp_test > 3:
+    #        comp_test = 0
+
+    # as chamadas de draw devem ser feitas de trás pra frente
+    # começando pelo fundo e terminando pelo jogador
+    # desenha o fundo (tela preta)
+    draw_bg()
+
+    # desenha os projeteis, inimigos e o jogador
+    pickups_group.draw(game_screen)
+    projectile_group.draw(game_screen)    
+    player_group.draw(game_screen)
+    enemies_group.draw(game_screen)
+    enemies_projectile_group.draw(game_screen)
+    
+    # draw top
+    draw_borders()
+    
+    # aviso de próxima wave
+    if wave_timer % 0.4 > 0.2:
+        draw_text(f'wave {ondas+2} !',font40, white, playable_area_center-55, 100 )
+    if countdown > 0:
+        draw_text1('GET READY!', font40, white, playable_area_center-110, 200)
+        draw_text1(str(countdown), font40, white, playable_area_center-10, 250)
+        count_timer = pygame.time.get_ticks()
+        if count_timer - last_count > 1000:
+            countdown -= 1
+            last_count = count_timer
+    
+    
+    #checar se pegou pickup
+    # alterei aqui para ao inves de remover o sprite ele chamar o metodo disable
+    # assim ele não é removido, e sim desabilitado e fica pronto par ser usado de novo
+    pu_collisions = pygame.sprite.spritecollide(player, pickups_group, False)
+    for col in pu_collisions:
+        if col.active:
+             col.pick()           
+    
+    # hp_sfx = pygame.mixer.Sound("assets/HP.wav")
+    # pygame.mixer.Sound.play(hp_sfx)
+    # função com os textos
+    txt_health = text(player.health_remaining)
+    game_screen.blit(txt_health, (10,10))
+    dificulty_display = standard_font.render(f'dificuldade: {current_dificulty}',False,'White')
+    game_screen.blit(dificulty_display, (10,50))
+    enemies_display = standard_font.render(f'inimigos mortos: {enemies_killed_total}',False,'White')
+    game_screen.blit(enemies_display, (10,90))
+    waves_display = standard_font.render(f'onda atual: {ondas+1}',False,'White')
+    game_screen.blit(waves_display, (10,130))
+    lvl1 = player.machinegun_level if player.machinegun_level < len(player.machinegun_list) - 1 else 'max'
+    powerup1_display = standard_font.render(f'speed lvl: {lvl1}',False,'White')
+    game_screen.blit(powerup1_display, (playable_area_right + 10, screen_height - 60))
+    
+    lvl2 = player.shotgun_level if player.shotgun_level < len(player.shotgun_list) - 1 else 'max'
+    powerup2_display = standard_font.render(f'shotgun lvl: {lvl2}',False,'White')
+    game_screen.blit(powerup2_display, (playable_area_right + 10, screen_height - 40))
+    # aumenta o tamanho da game_screen e desenha ela na screen
+    screenshot = pygame.transform.scale(game_screen, screen.get_rect().size)
+    screen.blit(screenshot, (0,0))
+    
+    pygame.display.update()
+
+#main_menu()
+
+
+
+def start_menu():
     # carrega e toca a música
     # # sujeito a mudnça caso menu seja implementado
     pygame.mixer.music.load("assets/menu_0.wav")
     pygame.mixer.music.play(-1)
     pygame.mixer.music.set_volume(1.0)
 
-    run = True
-    while run:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-        
-        game_screen.blit(bg_surface,(0,0))
-        
-        bg_group.draw(game_screen)
-
-        # movimento do paralax
-        for p in paralax_group:
-            p.rect.y += p.speed
-
-            if p.rect.y > screen_height/2 + p.rect.height / 2:
-                p.rect.y -= p.rect.height * 2
-
-        paralax_group.draw(game_screen)
-
-        border_group.draw(game_screen)
-        
-        pickups_group.draw(game_screen)
-        projectile_group.draw(game_screen)    
-        player_group.draw(game_screen)
-        enemies_group.draw(game_screen)
-        
-        #pickups_group.update()
-        #player_group.update()
-        #projectile_group.update()
-        # enemies_group.update(current_dificulty)
-        
-        draw_text('1 - Start',font40, white,50,200)
-        draw_text('2 - Exit',font40, white,50,250)
-        
-        menu_key = pygame.key.get_pressed()
-        
-        if menu_key[pygame.K_1]:
-            pygame.mixer.music.unload()
-            run = game()
-            
-
-        if menu_key[pygame.K_2]:
-            run = False
-        
-        # aumenta o tamanho da game_screen e desenha ela na screen
-        screenshot = pygame.transform.scale(game_screen, screen.get_rect().size)
-
-        screen.blit(screenshot, (0,0))
-        
-        pygame.display.update()
-
-
-
-
-def game():
+def start_game():
     global ondas
     ondas = 0
     global countdown
@@ -732,201 +969,44 @@ def game():
 
     global wave_timer
     
+    print('game start')
+    pygame.mixer.music.unload()
     pygame.mixer.music.load("assets/Space_0.wav")
     pygame.mixer.music.play(-1)
     pygame.mixer.music.set_volume(1.0)
-    
-    running = True
-# loop principal
-    while running:
 
-        # fecha a janela
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-                return False
-        
-        # checa de o jogador ainda esta vivo
-        if player.health_remaining <= 0:
-            player.health_remaining = 0
-            game_over = -1
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            quit()
 
-        # dt é o delta time, o tempo de um frame para o outro
-        dt = clock.tick(max_fps)
-    
-        timer += dt / 1000.0
-        
-        # altera a dificuldade
-        if enemies_killed == 0:
-            current_dificulty = 0 + ondas
-        elif enemies_killed < 32:
-            current_dificulty = floor(enemies_killed/8) + ondas
-            if current_dificulty > 7:
-                current_dificulty = 7
-        
-        # checa se existe grupo de inimigos
-        if not enemies_group:
-            player.active = False
+            #running = False
+            #return False
 
-            wave_timer += 1.0/60
-
+    if current_state == STATE_MENU:
+        if last_state != current_state:
+            start_menu()
             
-            
-            if wave_timer > 4:
-                if ondas < 6:
-                    ondas += 1
+        last_state = current_state
 
-                current_dificulty -= 2
-                enemies_killed = 0
-                wave_timer = 0.0
-                player.active = True
-
-                #pygame.time.delay(500)
-                create_enemies(ondas)
-
-        if countdown == 0:
-
-            time_now = pygame.time.get_ticks()
-
-            if time_now - last_enemy_shot > alien_cooldown and len(enemies_group) > 0:
-                attacking_enemy = random.choice(enemies_group.sprites())
-                enemy_projectile = Alien_Projectile(attacking_enemy.rect.centerx, attacking_enemy.rect.bottom)
-                enemies_projectile_group.add(enemy_projectile)
-                last_enemy_shot = time_now    
-
-            if game_over == 0:
-                # update nos projeteis,jogador e inimigos
-                pickups_group.update()
-                player_group.update()
-                projectile_group.update()
-                enemies_group.update(current_dificulty)
-                enemies_projectile_group.update()
-            else:
-                draw_text1('GAME OVER',font40, white, playable_area_center-110, 200 )
-                
-                running = False
-                return False
-                # pygame.mixer.music.unload()
-                #  running = False
-                
-                #  enemies_group.empty()
-                #  create_enemies(0)
-                
-                # projectile_group.empty()
-                #  create_projectiles(3)
-                
-                # pickups_group.empty()
-                # for i in range(3):
-                #     new_pu = Pickup_HP()
-                #      pickups_group.add(new_pu)
-
-                # for i in range(3):
-                #     new_pu = Pickup_PowerUp1()
-                #     pickups_group.add(new_pu)
-
-                # for i in range(3):
-                #  #     pickups_group.add(new_pu)
-
-                # for i in range(3):
-                #     new_pu = Pickup_PowerUp3()
-                #     pickups_group.add(new_pu)
-                
-                # player_group.empty()
-                # player = Player(int(screen_width/2), 9 * int(screen_height/10), 100)
-                #  player_group.add(player)
-                
-                # main_menu(False)
+        main_menu()
+    elif current_state == STATE_RUN:        
+        if last_state != current_state:
+            start_game()
         
-
-        # REMOVER
-        # criacao dos pickups, coloquei essa comp_test pra testar todos os tipos
-        #if timer > 3:
-        #    timer = 0
-        #
-        #    for pu in pickups_group:
-        #        if pu.active == False and pu.pickup_type == comp_test:
-        #            pu.spawn_rand()
-        #
-        #            break
-        #
-        #    comp_test +=1
-        #
-        #    if comp_test > 3:
-        #        comp_test = 0
+        last_state = current_state
+        
+        game()
+       
     
-        # as chamadas de draw devem ser feitas de trás pra frente
-        # começando pelo fundo e terminando pelo jogador
-
-        # desenha o fundo (tela preta)
-        draw_bg()
-    
-        # desenha os projeteis, inimigos e o jogador
-        pickups_group.draw(game_screen)
-        projectile_group.draw(game_screen)    
-        player_group.draw(game_screen)
-        enemies_group.draw(game_screen)
-        enemies_projectile_group.draw(game_screen)
-
-        
-        # draw top
-        draw_borders()
-
-        
-        # aviso de próxima wave
-        if wave_timer % 0.4 > 0.2:
-            draw_text(f'wave {ondas+2} !',font40, white, playable_area_center-55, 100 )
-
-        if countdown > 0:
-            draw_text1('GET READY!', font40, white, playable_area_center-110, 200)
-            draw_text1(str(countdown), font40, white, playable_area_center-10, 250)
-            count_timer = pygame.time.get_ticks()
-            if count_timer - last_count > 1000:
-                countdown -= 1
-                last_count = count_timer
-
-        
-        
-
-        #checar se pegou pickup
-        # alterei aqui para ao inves de remover o sprite ele chamar o metodo disable
-        # assim ele não é removido, e sim desabilitado e fica pronto par ser usado de novo
-        pu_collisions = pygame.sprite.spritecollide(player, pickups_group, False)
-
-        for col in pu_collisions:
-            if col.active:
-                 col.pick()           
-        
-        # hp_sfx = pygame.mixer.Sound("assets/HP.wav")
-        # pygame.mixer.Sound.play(hp_sfx)
 
 
-        # função com os textos
-        txt_health = text(player.health_remaining)
-        game_screen.blit(txt_health, (10,10))
-        dificulty_display = standard_font.render(f'dificuldade: {current_dificulty}',False,'White')
-        game_screen.blit(dificulty_display, (10,50))
-        enemies_display = standard_font.render(f'inimigos mortos: {enemies_killed_total}',False,'White')
-        game_screen.blit(enemies_display, (10,90))
-        waves_display = standard_font.render(f'onda atual: {ondas+1}',False,'White')
-        game_screen.blit(waves_display, (10,130))
-
-        lvl1 = player.machinegun_level if player.machinegun_level < len(player.machinegun_list) - 1 else 'max'
-        powerup1_display = standard_font.render(f'speed lvl: {lvl1}',False,'White')
-        game_screen.blit(powerup1_display, (playable_area_right + 10, screen_height - 60))
-        
-        lvl2 = player.shotgun_level if player.shotgun_level < len(player.shotgun_list) - 1 else 'max'
-        powerup2_display = standard_font.render(f'shotgun lvl: {lvl2}',False,'White')
-        game_screen.blit(powerup2_display, (playable_area_right + 10, screen_height - 40))
+def quit():
+    pygame.quit()
+    exit()
 
 
-        # aumenta o tamanho da game_screen e desenha ela na screen
-        screenshot = pygame.transform.scale(game_screen, screen.get_rect().size)
 
-        screen.blit(screenshot, (0,0))
-        
-        pygame.display.update()
-
-main_menu()
 
 pygame.quit()
 exit()
