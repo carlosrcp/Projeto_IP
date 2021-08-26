@@ -180,7 +180,7 @@ enemies_killed = 0
 class Projectile (pygame.sprite.Sprite):
     def __init__(self) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("./projectilec2.png")
+        self.image = pygame.image.load("assets/projectilec2.png")
         self.rect = self.image.get_rect()
         self.rect.center = [-self.rect.width, -self.rect.height]
 
@@ -221,7 +221,7 @@ create_projectiles(3)
 class Alien_Projectile (pygame.sprite.Sprite):
     def __init__(self,x,y) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("./projectiled.png")
+        self.image = pygame.image.load("assets/projectiled.png")
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
     
@@ -255,7 +255,7 @@ class Player (pygame.sprite.Sprite):
     
     def __init__(self, x, y,health) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("./nave.png")
+        self.image = pygame.image.load("assets/nave.png")
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
 
@@ -314,18 +314,18 @@ class EnemySquare(pygame.sprite.Sprite):
         self.y = y_pos
         self.moving_counter = 0
         self.enemy_speed = 1
+        index_class = 0
 
-        class1 = pygame.image.load('./class1.png')
-        class2 = pygame.image.load('./class2.png')
-        class3 = pygame.image.load('./class3.png')
-
-        if y_adjust == 0 or y_adjust == 1:
-            self.image = class1
-        elif y_adjust == 2 or y_adjust == 3:
-            self.image = class2
-        elif y_adjust == 4 or y_adjust == 5:
-            self.image = class3
+        classes = ['assets/class1.png','assets/class2.png','assets/class3.png']
         
+        if y_adjust == 0 or y_adjust == 1:
+            index_class = 0
+        elif y_adjust == 2 or y_adjust == 3:
+            index_class = 1
+        elif y_adjust == 4 or y_adjust == 5:
+            index_class = 2
+
+        self.image = pygame.image.load(classes[index_class])
         # self.image = pygame.image.load((square_sizes[type],square_sizes[type]))
         # self.image.fill((150,64,64))
         self.rect = self.image.get_rect(center = (self.x + (x_adjust*(square_sizes[2] + 9)),self.y + (y_adjust*(square_sizes[2] + 9))))
