@@ -180,7 +180,7 @@ enemies_killed = 0
 class Projectile (pygame.sprite.Sprite):
     def __init__(self) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("./projectile.png")
+        self.image = pygame.image.load("./assets/projectile.png")
         self.rect = self.image.get_rect()
         self.rect.center = [-self.rect.width, -self.rect.height]
 
@@ -221,7 +221,7 @@ create_projectiles(3)
 class Alien_Projectile (pygame.sprite.Sprite):
     def __init__(self,x,y) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("./projectile.png")
+        self.image = pygame.image.load("./assets/projectile.png")
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
     
@@ -250,12 +250,26 @@ def text(health):
 
     return health_text
 
+white = (255, 255, 255)
+health_font = pygame.font.SysFont('comicsans', 30)
+
+#função que contem os textos com os atributos atuais
+def text(health):
+    #textos a esquerda
+    health_text = health_font.render("Health: " + str(health), True, white)
+
+    #textos a direita
+    #direita_text = health_font.render("Texto a direita: " + str(health), 1, white)
+    #bg_surface.blit(direita_text, (screen_width - direita_text.get_width() - 10, 10))
+
+    return health_text
+
 # classe da nave do jogador 
 class Player (pygame.sprite.Sprite):
     
     def __init__(self, x, y,health) -> None:
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("./nave.png")
+        self.image = pygame.image.load("./assets/nave.png")
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
 
@@ -362,6 +376,13 @@ enemies_killed_total = enemies_killed
 current_dificulty = standard_dificulty
 
 running = True
+
+# carrega e toca a música
+# sujeito a mudnça caso menu seja implementado
+pygame.mixer.music.load("assets/menu_0.wav")
+pygame.mixer.music.play(-1)
+pygame.mixer.music.set_volume(1.0)
+
 # loop principal
 while True:
 
@@ -419,6 +440,17 @@ while True:
                 break
 
 
+    # criacao dos pickups
+    if timer > 4:
+        timer = 0
+
+        for pu in pickups_group:
+            if pu.active == False:
+                pu.spawn_rand()
+
+                break
+
+
     # as chamadas de draw devem ser feitas de trás pra frente
     # começando pelo fundo e terminando pelo jogador
 
@@ -435,6 +467,8 @@ while True:
     #checar se pegou pickup
     if pygame.sprite.spritecollide(player, pickups_group, True):
             player.health_remaining += 10
+            hp_sfx = pygame.mixer.Sound("assets/HP.wav")
+            pygame.mixer.Sound.play(hp_sfx)
 
     # função com os textos
     txt_health = text(player.health_remaining)
