@@ -379,7 +379,7 @@ running = True
 
 # carrega e toca a música
 # sujeito a mudnça caso menu seja implementado
-pygame.mixer.music.load("assets/menu_0.wav")
+pygame.mixer.music.load("assets/Space_0.wav")
 pygame.mixer.music.play(-1)
 pygame.mixer.music.set_volume(1.0)
 
