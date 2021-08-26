@@ -20,6 +20,8 @@ pygame.init()
 screen_height = 360
 screen_width = 640
 
+alien_cooldown = 1000 # recarge do projetil dos aliens em ms
+last_enemy_shot = pygame.time.get_ticks()
 # posicao inicial do primeiro inimigo
 x_pos = 250
 y_pos = 20
@@ -204,7 +206,6 @@ class Projectile (pygame.sprite.Sprite):
             global enemies_killed_total
             enemies_killed_total += 1
 
-
 # grupo que guarda os projeteis a ser disparados
 projectile_group = pygame.sprite.Group()
 
@@ -216,6 +217,24 @@ def create_projectiles(value: int):
         projectile_group.add(new_projectile)
 
 create_projectiles(3)
+
+class Alien_Projectile (pygame.sprite.Sprite):
+    def __init__(self,x,y) -> None:
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("./projectile.png")
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+    
+    def update(self):
+        self.rect.y += 2
+        if self.rect.top > screen_height:
+            self.kill()
+        
+        if pygame.sprite.spritecollide(self,player_group,False):
+            self.kill()
+            player.health_remaining -= 50 
+
+enemies_projectile_group = pygame.sprite.Group()
 
 white = (255, 255, 255)
 health_font = pygame.font.SysFont('comicsans', 30)
@@ -342,6 +361,7 @@ ondas = 0
 enemies_killed_total = enemies_killed
 current_dificulty = standard_dificulty
 
+running = True
 # loop principal
 while True:
 
@@ -351,8 +371,14 @@ while True:
             pygame.quit()
             exit()
     
-    
-    
+    time_now = pygame.time.get_ticks()
+
+    if time_now - last_enemy_shot > alien_cooldown:
+        attacking_enemy = random.choice(enemies_group.sprites())
+        enemy_projectile = Alien_Projectile(attacking_enemy.rect.centerx, attacking_enemy.rect.bottom)
+        enemies_projectile_group.add(enemy_projectile)
+        last_enemy_shot = time_now
+
     # dt é o delta time, o tempo de um frame para o outro
     dt = clock.tick(max_fps)
     
@@ -380,6 +406,7 @@ while True:
     player_group.update()
     projectile_group.update()
     enemies_group.update(current_dificulty)
+    enemies_projectile_group.update()
 
     # criacao dos pickups
     if timer > 4:
@@ -403,6 +430,7 @@ while True:
     projectile_group.draw(game_screen)    
     player_group.draw(game_screen)
     enemies_group.draw(game_screen)
+    enemies_projectile_group.draw(game_screen)
 
     #checar se pegou pickup
     if pygame.sprite.spritecollide(player, pickups_group, True):
