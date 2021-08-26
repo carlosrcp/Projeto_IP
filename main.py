@@ -24,11 +24,13 @@ screen_width = 640
 x_pos = 250
 y_pos = 20
 
+standard_font = pygame.font.Font(None,30)
+
 # tamanho dos quadrados inimigos (pode ser retirado no momento que forem adicionados as imagens de inimigos)
 square_sizes = [11,15,19,20]
 
 # dificuldade padrao
-standard_dificultie = 0
+standard_dificulty = 0
 
 # a largura disponível pra a área jogável
 playable_width = 202
@@ -199,6 +201,8 @@ class Projectile (pygame.sprite.Sprite):
             create_projectiles(1)
             global enemies_killed
             enemies_killed += 1
+            global enemies_killed_total
+            enemies_killed_total += 1
 
 
 # grupo que guarda os projeteis a ser disparados
@@ -315,6 +319,8 @@ class EnemySquare(pygame.sprite.Sprite):
 enemies_group = pygame.sprite.Group()
 
 def create_enemies(waves: int):
+    if waves > 4:
+        waves = 4
     for j in range(6):
         for i in range(6):
             enemies_group.add(EnemySquare(floor(j/2),i,j + waves))
@@ -333,6 +339,8 @@ player_group.add(player)
 timer = 0.0
 
 ondas = 0
+enemies_killed_total = enemies_killed
+current_dificulty = standard_dificulty
 
 # loop principal
 while True:
@@ -342,32 +350,36 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
-
+    
+    
+    
     # dt é o delta time, o tempo de um frame para o outro
     dt = clock.tick(max_fps)
     
     timer += dt / 1000.0
 
     if enemies_killed == 0:
-        standard_dificultie = 0
-    elif enemies_killed < 8:
-        standard_dificultie = (floor(enemies_killed/8)-1)
-    else:
-        standard_dificultie = 7
+        current_dificulty = 0 + ondas
+    elif enemies_killed < 32:
+        current_dificulty = floor(enemies_killed/8) + ondas
+        if current_dificulty > 7:
+            current_dificulty = 7
 
     if not enemies_group:
         if ondas < 6:
             ondas += 1
         
+        current_dificulty -= 2
+        enemies_killed = 0
+        
         pygame.time.delay(1250)
         create_enemies(ondas)    
-
     
     # update nos projeteis,jogador e inimigos
     pickups_group.update()
     player_group.update()
     projectile_group.update()
-    enemies_group.update(standard_dificultie)
+    enemies_group.update(current_dificulty)
 
     # criacao dos pickups
     if timer > 4:
@@ -399,6 +411,12 @@ while True:
     # função com os textos
     txt_health = text(player.health_remaining)
     game_screen.blit(txt_health, (10,10))
+    dificulty_display = standard_font.render(f'dificuldade: {current_dificulty}',False,'White')
+    game_screen.blit(dificulty_display, (10,50))
+    enemies_display = standard_font.render(f'inimigos mortos: {enemies_killed_total}',False,'White')
+    game_screen.blit(enemies_display, (10,90))
+    waves_display = standard_font.render(f'onda atual: {ondas+1}',False,'White')
+    game_screen.blit(waves_display, (10,130))
 
     # aumenta o tamanho da game_screen e desenha ela na screen
     screenshot = pygame.transform.scale(game_screen, screen.get_rect().size)
