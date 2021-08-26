@@ -941,19 +941,19 @@ def game():
     # função com os textos
     txt_health = text(player.health_remaining)
     game_screen.blit(txt_health, (10,10))
-    dificulty_display = standard_font.render(f'dificuldade: {current_dificulty}',False,'White')
+    dificulty_display = standard_font.render(f'Level: {current_dificulty}',False,'White')
     game_screen.blit(dificulty_display, (10,50))
-    enemies_display = standard_font.render(f'inimigos mortos: {enemies_killed_total}',False,'White')
+    enemies_display = standard_font.render(f'Kills: {enemies_killed_total}',False,'White')
     game_screen.blit(enemies_display, (10,90))
-    waves_display = standard_font.render(f'onda atual: {ondas+1}',False,'White')
+    waves_display = standard_font.render(f'Wave: {ondas+1}',False,'White')
     game_screen.blit(waves_display, (10,130))
     lvl1 = player.machinegun_level if player.machinegun_level < len(player.machinegun_list) - 1 else 'max'
-    powerup1_display = standard_font.render(f'speed lvl: {lvl1}',False,'White')
-    game_screen.blit(powerup1_display, (playable_area_right + 10, screen_height - 60))
+    powerup1_display = standard_font.render(f'Speed lvl: {lvl1}',False,'White')
+    game_screen.blit(powerup1_display, (playable_area_right + 20, screen_height - 70))
     
     lvl2 = player.shotgun_level if player.shotgun_level < len(player.shotgun_list) - 1 else 'max'
-    powerup2_display = standard_font.render(f'shotgun lvl: {lvl2}',False,'White')
-    game_screen.blit(powerup2_display, (playable_area_right + 10, screen_height - 40))
+    powerup2_display = standard_font.render(f'Shotgun lvl: {lvl2}',False,'White')
+    game_screen.blit(powerup2_display, (playable_area_right + 20, screen_height - 40))
     # aumenta o tamanho da game_screen e desenha ela na screen
     screenshot = pygame.transform.scale(game_screen, screen.get_rect().size)
     screen.blit(screenshot, (0,0))
