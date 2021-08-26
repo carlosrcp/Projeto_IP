@@ -86,7 +86,7 @@ screen = pygame.display.set_mode((screen_width,screen_height),pygame.RESIZABLE)
 game_screen = screen.copy()
 
 # o nome da janela
-pygame.display.set_caption("nome teste")
+pygame.display.set_caption("SpaCinvaders")
 # cria o clock que regula o framerate
 clock = pygame.time.Clock()
 
@@ -652,7 +652,7 @@ def create_enemies(waves: int):
         for i in range(6):
             enemies_group.add(EnemySquare(floor(j/2),i,j + waves))
 
-create_enemies(0)
+#create_enemies(0)
 
 # grupo dos jogadores, só tem 1
 player_group = pygame.sprite.Group()
@@ -679,7 +679,6 @@ def reset():
         i.disable()
     for i in projectile_group:
         i.disable()
-    
     
     player.reset()
 
@@ -950,10 +949,11 @@ def start_menu():
     pygame.mixer.music.load("assets/menu_0.wav")
     pygame.mixer.music.play(-1)
     pygame.mixer.music.set_volume(1.0)
+    ondas = -1
 
 def start_game():
     global ondas
-    ondas = 0
+    ondas = -1
     global countdown
     countdown = 3
     global timer
@@ -966,8 +966,12 @@ def start_game():
     global last_enemy_shot
     global game_over
     game_over = 0
-
     global wave_timer
+    wave_timer = 0.0
+
+    global enemies_killed_total
+    enemies_killed_total = 0
+    
     
     print('game start')
     pygame.mixer.music.unload()
