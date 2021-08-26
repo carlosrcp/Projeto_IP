@@ -783,15 +783,31 @@ def game():
             running = False
             return False
     
+    enemy_list = enemies_group.sprites()
+    if enemy_list == []:
+        enemy_list = False
     # checa de o jogador ainda esta vivo
-    if player.health_remaining <= 0:
-        player.health_remaining = 0
+    if enemy_list:
         global current_state
         global STATE_MENU
-        current_state =  STATE_MENU
-        reset()
-        return
-        game_over = -1
+        if player.health_remaining <= 0 or enemy_list[len(enemy_list)-1].rect.centery >=  9 * int(screen_height/10):
+            player.health_remaining = 0
+            # global current_state
+            # global STATE_MENU
+            current_state =  STATE_MENU
+            reset()
+            return
+            game_over = -1
+    else:
+        if player.health_remaining <= 0:
+            player.health_remaining = 0
+            # global current_state
+            # global STATE_MENU
+            current_state =  STATE_MENU
+            reset()
+            return
+            game_over = -1
+
     # dt é o delta time, o tempo de um frame para o outro
     dt = clock.tick(max_fps)
 
