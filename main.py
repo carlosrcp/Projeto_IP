@@ -22,6 +22,7 @@ screen_width = 640
 
 alien_cooldown = 1000 # recarge do projetil dos aliens em ms
 last_enemy_shot = pygame.time.get_ticks()
+
 # posicao inicial do primeiro inimigo
 x_pos = 250
 y_pos = 20
@@ -360,6 +361,9 @@ def create_enemies(waves: int):
 
 create_enemies(0)
 
+
+running = True
+
 # grupo dos jogadores, só tem 1
 player_group = pygame.sprite.Group()
 
@@ -375,7 +379,6 @@ ondas = 0
 enemies_killed_total = enemies_killed
 current_dificulty = standard_dificulty
 
-running = True
 
 # carrega e toca a música
 # sujeito a mudnça caso menu seja implementado
@@ -384,14 +387,13 @@ pygame.mixer.music.play(-1)
 pygame.mixer.music.set_volume(1.0)
 
 # loop principal
-while True:
+while running:
 
     # fecha a janela
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            pygame.quit()
-            exit()
-    
+            running = False
+
     time_now = pygame.time.get_ticks()
 
     if time_now - last_enemy_shot > alien_cooldown:
@@ -487,5 +489,6 @@ while True:
     
     pygame.display.update()
 
-
-gig
+pygame.quit()
+exit()
+# gig
