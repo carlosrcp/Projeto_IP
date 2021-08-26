@@ -8,7 +8,7 @@ from pygame import key
 from pygame import time
 from pygame import fastevent
 from pygame import sprite
-from pygame.constants import FULLSCREEN, GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH, KEYDOWN, RESIZABLE
+from pygame.constants import ACTIVEEVENT, FULLSCREEN, GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH, KEYDOWN, RESIZABLE
 from pygame.display import update
 from pygame.math import disable_swizzling
 
@@ -36,6 +36,9 @@ y_pos = 20
 standard_font = pygame.font.Font(None, 30)
 font30 = pygame.font.SysFont('Constantia', 30)
 font40 = pygame.font.SysFont('Constantia', 40)
+
+
+wave_timer = 0.0
 
 # definindo cores
 white = (255, 255, 255)
@@ -438,6 +441,8 @@ class Player (pygame.sprite.Sprite):
         self.shotgun_rate = 6
         self.shotgun_count = self.shotgun_rate
 
+        self.active = True
+
     # atirar se houve projetile disponivel
     def shoot(self, speed_x):
         for i in projectile_group:
@@ -516,7 +521,7 @@ class Player (pygame.sprite.Sprite):
         #    self.rect.y = min(self.rect.y + speed, screen_height - 16) 
         
         # checa e dispara os projeteis
-        if key_pressed[pygame.K_SPACE]:
+        if key_pressed[pygame.K_SPACE] and self.active:
             
             if (not(self.trigger) and self.reload_count < 10) or self.reload_count == 0:
                 if self.shotgun_count == 0 and self.shotgun_level > 0:
@@ -563,6 +568,8 @@ class EnemySquare(pygame.sprite.Sprite):
         self.enemy_speed = 1
         index_class = 0
 
+        self.offset = screen_height
+
         classes = ['assets/class1.png','assets/class2.png','assets/class3.png']
         
         if y_adjust == 0 or y_adjust == 1:
@@ -576,10 +583,16 @@ class EnemySquare(pygame.sprite.Sprite):
         # self.image = pygame.image.load((square_sizes[type],square_sizes[type]))
         # self.image.fill((150,64,64))
         self.rect = self.image.get_rect(center = (self.x + (x_adjust*(square_sizes[2] + 9)),self.y + (y_adjust*(square_sizes[2] + 9))))
+        self.rect.y -= self.offset
     
     def update(self,ind: int):
         self.dificulties = [1,2,4,8,16,32,64,128]
         self.time = 2 + floor(pygame.time.get_ticks()/100)
+        
+        if self.offset > 0:
+            delta = min(self.offset, 10)
+            self.offset -= delta
+            self.rect.y += delta
 
         # ####### timer criado com proposito de teste #########
         # self.time_display = standard_font.render(f'timer: {self.time}',False,'White')
@@ -632,9 +645,6 @@ timer = 0.0
 
 # temporario so pra testar os pickups caindo
 #comp_test = 0
-
-
-
 
 
 
@@ -719,6 +729,8 @@ def game():
     global last_enemy_shot
     global game_over
     game_over = 0
+
+    global wave_timer
     
     pygame.mixer.music.load("assets/Space_0.wav")
     pygame.mixer.music.play(-1)
@@ -754,20 +766,29 @@ def game():
         
         # checa se existe grupo de inimigos
         if not enemies_group:
-            if ondas < 6:
-                ondas += 1
-        
-            current_dificulty -= 2
-            enemies_killed = 0
-        
-            pygame.time.delay(500)
-            create_enemies(ondas)
+            player.active = False
+
+            wave_timer += 1.0/60
+
+            
+            
+            if wave_timer > 4:
+                if ondas < 6:
+                    ondas += 1
+
+                current_dificulty -= 2
+                enemies_killed = 0
+                wave_timer = 0.0
+                player.active = True
+
+                #pygame.time.delay(500)
+                create_enemies(ondas)
 
         if countdown == 0:
 
             time_now = pygame.time.get_ticks()
 
-            if time_now - last_enemy_shot > alien_cooldown:
+            if time_now - last_enemy_shot > alien_cooldown and len(enemies_group) > 0:
                 attacking_enemy = random.choice(enemies_group.sprites())
                 enemy_projectile = Alien_Projectile(attacking_enemy.rect.centerx, attacking_enemy.rect.bottom)
                 enemies_projectile_group.add(enemy_projectile)
@@ -850,6 +871,11 @@ def game():
         # draw top
         draw_borders()
 
+        
+        # aviso de próxima wave
+        if wave_timer % 0.4 > 0.2:
+            draw_text(f'wave {ondas+2} !',font40, white, playable_area_center-55, 100 )
+
         if countdown > 0:
             draw_text1('GET READY!', font40, white, playable_area_center-110, 200)
             draw_text1(str(countdown), font40, white, playable_area_center-10, 250)
@@ -857,6 +883,9 @@ def game():
             if count_timer - last_count > 1000:
                 countdown -= 1
                 last_count = count_timer
+
+        
+        
 
         #checar se pegou pickup
         # alterei aqui para ao inves de remover o sprite ele chamar o metodo disable
