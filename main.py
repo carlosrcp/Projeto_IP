@@ -22,12 +22,23 @@ screen_width = 640
 
 alien_cooldown = 1000 # recarge do projetil dos aliens em ms
 last_enemy_shot = pygame.time.get_ticks()
+countdown = 3
+last_count = pygame.time.get_ticks()
+game_over = 0
 
 # posicao inicial do primeiro inimigo
 x_pos = 250
 y_pos = 20
 
-standard_font = pygame.font.Font(None,30)
+# fonts
+standard_font = pygame.font.Font(None, 30)
+font30 = pygame.font.SysFont('Constantia', 30)
+font40 = pygame.font.SysFont('Constantia', 40)
+
+# definindo cores
+white = (255, 255, 255)
+red = (255, 0, 0)
+green = (0,255,0)
 
 # tamanho dos quadrados inimigos (pode ser retirado no momento que forem adicionados as imagens de inimigos)
 square_sizes = [11,15,19,20]
@@ -62,6 +73,11 @@ bg_surface.fill('black')
 
 # borda da área jogavel
 border_group = pygame.sprite.Group()
+
+# definindo uma funcao para desenha texto
+def draw_text(text, font, tex_col, x, y):
+    img = font.render(text,True, tex_col)
+    game_screen.blit(img, (x,y))
 
 for i in range(1 + int (screen_height / 16)):
     # sprite da borda da direita
@@ -237,21 +253,6 @@ class Alien_Projectile (pygame.sprite.Sprite):
 
 enemies_projectile_group = pygame.sprite.Group()
 
-white = (255, 255, 255)
-health_font = pygame.font.SysFont('comicsans', 30)
-
-#função que contem os textos com os atributos atuais
-def text(health):
-    #textos a esquerda
-    health_text = health_font.render("Health: " + str(health), True, white)
-
-    #textos a direita
-    #direita_text = health_font.render("Texto a direita: " + str(health), 1, white)
-    #bg_surface.blit(direita_text, (screen_width - direita_text.get_width() - 10, 10))
-
-    return health_text
-
-white = (255, 255, 255)
 health_font = pygame.font.SysFont('comicsans', 30)
 
 #função que contem os textos com os atributos atuais
@@ -392,10 +393,12 @@ current_dificulty = standard_dificulty
 
 
 # carrega e toca a música
-# sujeito a mudnça caso menu seja implementado
+# # sujeito a mudnça caso menu seja implementado
 pygame.mixer.music.load("assets/Space_0.wav")
 pygame.mixer.music.play(-1)
 pygame.mixer.music.set_volume(1.0)
+
+
 
 # loop principal
 while running:
@@ -404,14 +407,10 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
-    time_now = pygame.time.get_ticks()
-
-    if time_now - last_enemy_shot > alien_cooldown:
-        attacking_enemy = random.choice(enemies_group.sprites())
-        enemy_projectile = Alien_Projectile(attacking_enemy.rect.centerx, attacking_enemy.rect.bottom)
-        enemies_projectile_group.add(enemy_projectile)
-        last_enemy_shot = time_now
+    
+    if player.health_remaining <= 0:
+        player.health_remaining = 0
+        game_over = -1
 
     # dt é o delta time, o tempo de um frame para o outro
     dt = clock.tick(max_fps)
@@ -433,37 +432,40 @@ while running:
         enemies_killed = 0
         
         pygame.time.delay(1250)
-        create_enemies(ondas)    
+        create_enemies(ondas)
     
-    # update nos projeteis,jogador e inimigos
-    pickups_group.update()
-    player_group.update()
-    projectile_group.update()
-    enemies_group.update(current_dificulty)
-    enemies_projectile_group.update()
 
-    # criacao dos pickups
-    if timer > 4:
-        timer = 0
+    if countdown == 0:
+        
 
-        for pu in pickups_group:
-            if pu.active == False:
-                pu.spawn_rand()
+        time_now = pygame.time.get_ticks()
 
-                break
+        if time_now - last_enemy_shot > alien_cooldown:
+            attacking_enemy = random.choice(enemies_group.sprites())
+            enemy_projectile = Alien_Projectile(attacking_enemy.rect.centerx, attacking_enemy.rect.bottom)
+            enemies_projectile_group.add(enemy_projectile)
+            last_enemy_shot = time_now    
 
+        if game_over == 0:
+            # update nos projeteis,jogador e inimigos
+            pickups_group.update()
+            player_group.update()
+            projectile_group.update()
+            enemies_group.update(current_dificulty)
+            enemies_projectile_group.update()
+        else:
+            draw_text('GAME READY!', font40, white, playable_area_center-100, 200)
 
-    # criacao dos pickups
-    if timer > 4:
-        timer = 0
+        # criacao dos pickups
+        if timer > 4:
+            timer = 0
 
-        for pu in pickups_group:
-            if pu.active == False:
-                pu.spawn_rand()
+            for pu in pickups_group:
+                if pu.active == False:
+                    pu.spawn_rand()
 
-                break
-
-
+                    break
+    
     # as chamadas de draw devem ser feitas de trás pra frente
     # começando pelo fundo e terminando pelo jogador
 
@@ -476,6 +478,14 @@ while running:
     player_group.draw(game_screen)
     enemies_group.draw(game_screen)
     enemies_projectile_group.draw(game_screen)
+
+    if countdown > 0:
+        draw_text('GET READY!', font40, white, playable_area_center-110, 200)
+        draw_text(str(countdown), font40, white, playable_area_center-10, 250)
+        count_timer = pygame.time.get_ticks()
+        if count_timer - last_count > 1000:
+            countdown -= 1
+            last_count = count_timer
 
     #checar se pegou pickup
     if pygame.sprite.spritecollide(player, pickups_group, True):
