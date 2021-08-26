@@ -408,7 +408,7 @@ class Alien_Projectile (pygame.sprite.Sprite):
         
         if pygame.sprite.spritecollide(self,player_group,False):
             self.kill()
-            player.health_remaining -= 50 
+            player.health_remaining -= 40 
 
 enemies_projectile_group = pygame.sprite.Group()
 
